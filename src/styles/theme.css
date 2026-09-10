@@ -1,0 +1,44 @@
+/* Базовые переменные (светлая тема по умолчанию) */
+:root {
+  --bg-primary: rgb(252, 252, 251);
+  --bg-topbar: rgb(252, 252, 251);
+  --bg-search: rgb(242, 242, 240);
+  --bg-card: rgb(246, 246, 245);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  --accent: #4a5df9;
+  --accent-hover: #3948c9;
+  --accent-text: #ffffff;
+}
+
+/* Тёмная тема (активируется, если в системе включена тёмная тема) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: rgb(17, 17, 17);
+    --bg-topbar: rgb(17, 17, 17);
+    --bg-search: rgb(30, 30, 30);
+    --bg-card: rgb(26, 26, 26);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --text-primary: #e4e6eb;
+    --text-secondary: #9ba1a8;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+
+    --accent: #4a5df9;
+    --accent-hover: #6b7bfb;
+    --accent-text: #ffffff;
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  /* transition на background/color убран специально:
+     он вызывал заметную анимацию-мигание при первой отрисовке страницы,
+     когда браузер применяет тему до и после media query */
+}

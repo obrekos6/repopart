@@ -1,0 +1,85 @@
+.topbar {
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.topbar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  padding: 0 16px;
+  gap: 12px;
+  width: 100%;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background-color: var(--bg-search);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.logo-icon {
+  height: 26px;
+  width: auto;
+}
+
+.logo-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.create-btn {
+  background-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.create-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+@media (max-width: 640px) {
+  .topbar-main {
+    padding: 0 10px;
+  }
+
+  .logo-text {
+    font-size: 1.1rem;
+  }
+}
