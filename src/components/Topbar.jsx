@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import logoUrl from '../assets/icons/logo.svg';
-import CreateRepoModal from './Createrepomodal';
+import CreateRepoModal from './CreateRepoModal';
 import SideMenu from './SideMenu';
 import './Topbar.css';
 
