@@ -1,0 +1,114 @@
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 500;
+}
+
+.auth-modal {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px 24px;
+  box-shadow: var(--shadow);
+}
+
+.auth-logo {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.auth-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 8px 0;
+}
+
+.auth-input {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background-color: var(--bg-search);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.auth-input:focus {
+  border-color: var(--accent);
+}
+
+.auth-error {
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin: 0;
+  text-align: center;
+}
+
+.auth-primary {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  border-radius: 8px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-top: 4px;
+}
+
+.auth-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+.auth-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px;
+  font-family: inherit;
+}
+
+.auth-link:hover {
+  color: var(--accent-hover);
+}

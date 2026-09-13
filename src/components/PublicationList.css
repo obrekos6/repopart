@@ -3,7 +3,6 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  max-width: 100%;
 }
 
 .publication-card {
@@ -18,11 +17,7 @@
   box-shadow: var(--shadow);
 }
 
-.pub-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.pub-header { display: flex; flex-direction: column; gap: 4px; }
 
 .pub-title {
   font-family: 'Manrope', sans-serif;
@@ -45,7 +40,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
-  width: 100%;
 }
 
 .pub-file-item {
@@ -55,13 +49,9 @@
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.15s;
-  display: flex;
-  flex-direction: column;
 }
 
-.pub-file-item:hover {
-  transform: scale(1.02);
-}
+.pub-file-item:hover { transform: scale(1.02); }
 
 .pub-file-thumb {
   height: 100px;
@@ -74,14 +64,10 @@
 
 .pub-file-thumb img,
 .pub-file-thumb video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100%; height: 100%; object-fit: cover;
 }
 
-.pub-file-thumb .file-icon {
-  font-size: 2rem;
-}
+.pub-file-thumb .file-icon { font-size: 2rem; }
 
 .pub-file-info {
   padding: 8px;
@@ -99,43 +85,104 @@
   text-overflow: ellipsis;
 }
 
-.pub-file-size {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-}
+.pub-file-size { font-size: 0.65rem; color: var(--text-secondary); }
 
-/* ============ REACTIONS ============ */
+/* Реакции */
 .pub-reactions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+  position: relative;
 }
 
-.reaction-btn {
+.reaction-display {
   background-color: var(--bg-search);
-  border: 1px solid transparent;
   border-radius: 12px;
   padding: 4px 10px;
   font-size: 0.85rem;
-  cursor: pointer;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-primary);
-  transition: all 0.15s;
 }
 
-.reaction-btn:hover {
-  background-color: var(--border-color);
-}
-
-.reaction-btn.active {
+.reaction-display.is-mine {
   background-color: rgba(74, 93, 249, 0.15);
-  border-color: var(--accent);
   color: var(--accent);
 }
 
-/* ============ PREVIEW MODAL ============ */
+.reaction-picker-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.reaction-add-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--bg-search);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.reaction-add-btn:hover {
+  background-color: var(--border-color);
+}
+
+.reaction-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  box-shadow: var(--shadow);
+  z-index: 50;
+  animation: popIn 0.15s ease;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.reaction-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.reaction-option:hover {
+  background-color: var(--bg-search);
+  transform: scale(1.15);
+}
+
+.reaction-option.is-mine {
+  background-color: rgba(74, 93, 249, 0.15);
+  border-color: var(--accent);
+}
+
+/* Модалка предпросмотра */
 .preview-modal-overlay {
   position: fixed;
   inset: 0;
@@ -145,7 +192,6 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  overflow: hidden;
 }
 
 .preview-modal-content {
@@ -162,25 +208,18 @@
 
 .preview-modal-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 10px; right: 10px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   cursor: pointer;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 0.9rem;
 }
 
-.preview-modal-close:hover {
-  background: #ef4444;
-}
+.preview-modal-close:hover { background: #ef4444; }
 
 .preview-media {
   max-width: 100%;
@@ -194,5 +233,15 @@
   height: 80vh;
   border: none;
   background: white;
-  display: block;
+}
+
+.preview-unavailable {
+  padding: 60px 40px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.preview-unavailable-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
 }

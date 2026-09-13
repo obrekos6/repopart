@@ -136,3 +136,14 @@ body {
     font-size: 1rem;
   }
 }
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem;
+}

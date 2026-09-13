@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
 import logoUrl from '../assets/icons/logo.svg';
-import CreateRepoModal from './CreateRepoModal';
+import CreateRepoModal from './Createrepomodal';
 import SideMenu from './SideMenu';
+import { supabase } from '../lib/supabaseClient';
 import './Topbar.css';
 
 const Topbar = ({ onCreatePublication }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleOpenCreateModal = () => {
-    const userPassword = prompt("Введите пароль для создания репозитория:");
-    if (!userPassword) return;
-
-    if (userPassword === import.meta.env.VITE_MASTER_PASSWORD) {
-      setModalOpen(true);
-    } else {
-      alert("Неверный пароль!");
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
@@ -43,9 +37,19 @@ const Topbar = ({ onCreatePublication }) => {
 
           <div className="topbar-right">
             <button
+              className="icon-btn"
+              aria-label="Выйти"
+              onClick={handleLogout}
+              title="Выйти"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
               className="icon-btn create-btn"
               aria-label="Создать репозиторий"
-              onClick={handleOpenCreateModal}
+              onClick={() => setModalOpen(true)}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 1v14M1 8h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

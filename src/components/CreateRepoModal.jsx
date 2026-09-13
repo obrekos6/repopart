@@ -1,21 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { supabase } from '../lib/supabaseClient'; // Импорт клиента Supabase
-import './CreateRepoModal.css';
+import { supabase } from '../lib/supabaseClient';
+import './Createrepomodal.css';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.html', '.css', '.js', '.json', '.txt'];
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-  'video/mp4', 'video/webm', 'video/ogg'
+  'video/mp4', 'video/webm', 'video/ogg',
 ];
 
 const CreateRepoModal = ({ onClose, onCreate }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false); // Статус загрузки
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const formatSize = (bytes) => {
@@ -39,8 +40,8 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
       return false;
     }
     const ext = '.' + file.name.split('.').pop().toLowerCase();
-    const isAllowedType = ALLOWED_MIME_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(ext);
-    if (!isAllowedType) {
+    const isAllowed = ALLOWED_MIME_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(ext);
+    if (!isAllowed) {
       alert(`Формат файла "${file.name}" не поддерживается.`);
       return false;
     }
@@ -48,73 +49,78 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
   };
 
   const handleFiles = (newFiles) => {
-    const validFiles = Array.from(newFiles).filter(isValidFile);
-    const formattedFiles = validFiles.map(file => ({
+    const valid = Array.from(newFiles).filter(isValidFile);
+    const formatted = valid.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
       name: file.name,
       size: file.size,
       type: file.type || 'text/plain',
-      url: URL.createObjectURL(file) // Локальный предпросмотр до загрузки
+      url: URL.createObjectURL(file),
     }));
-    setFiles(prev => [...prev, ...formattedFiles]);
+    setFiles((prev) => [...prev, ...formatted]);
   };
 
-  const removeFile = (id) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
+  const removeFile = (id) => setFiles((prev) => prev.filter((f) => f.id !== id));
+
+  const uploadToStorage = async (fileObj) => {
+    const ext = fileObj.file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from('repopart-files')
+      .upload(fileName, fileObj.file);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage
+      .from('repopart-files')
+      .getPublicUrl(fileName);
+    return {
+      id: fileObj.id,
+      name: fileObj.name,
+      size: fileObj.size,
+      type: fileObj.type,
+      url: publicUrl,
+    };
   };
 
-  // Асинхронная отправка с загрузкой в Supabase
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setPasswordError('');
+
+    // Проверка пароля
+    const masterPassword = import.meta.env.VITE_MASTER_PASSWORD;
+    if (password !== masterPassword) {
+      setPasswordError('Неверный пароль');
+      return;
+    }
+
     setIsUploading(true);
-
     try {
-      // 1. Загружаем все файлы в Supabase Storage
-      const uploadedFiles = await Promise.all(
-        files.map(async (f) => {
-          const fileExt = f.file.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-          
-          const { data, error } = await supabase.storage
-            .from('repopart-files') // Имя твоего бакета
-            .upload(fileName, f.file);
+      // Загружаем все файлы
+      const uploadedFiles = await Promise.all(files.map(uploadToStorage));
 
-          if (error) {
-            console.error('Ошибка загрузки файла:', error);
-            return null;
-          }
+      // Получаем текущего пользователя
+      const { data: { user } } = await supabase.auth.getUser();
 
-          // Получаем публичную ссылку
-          const { data: { publicUrl } } = supabase.storage
-            .from('repopart-files')
-            .getPublicUrl(fileName);
-
-          return {
-            id: Math.random().toString(36).substr(2, 9),
-            name: f.name,
-            size: f.size,
-            type: f.type || 'text/plain',
-            url: publicUrl,
-          };
+      // Создаём запись в БД
+      const { data, error } = await supabase
+        .from('repositories')
+        .insert({
+          name,
+          description,
+          password,
+          files: uploadedFiles,
+          user_id: user.id,
         })
-      );
+        .select()
+        .single();
 
-      const validFiles = uploadedFiles.filter(file => file !== null);
+      if (error) throw error;
 
-      // 2. Передаем данные наверх в App.jsx
-      onCreate({
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        description,
-        files: validFiles,
-        createdAt: new Date().toISOString(),
-      });
-
+      onCreate && onCreate(data);
       onClose();
-    } catch (error) {
-      console.error('Ошибка при создании репозитория:', error);
-      alert('Произошла ошибка при загрузке. Проверьте консоль.');
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка при создании: ' + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -125,27 +131,42 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">Новый репозиторий</h2>
-          <button className="modal-close" aria-label="Закрыть" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
           <label className="field">
-            <span className="field-label">Название репозитория<span className="required">*</span></span>
-            <input type="text" className="field-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="my-awesome-project" required autoFocus />
+            <span className="field-label">Название<span className="required">*</span></span>
+            <input
+              type="text" className="field-input" value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="my-awesome-project" required autoFocus
+            />
           </label>
 
           <label className="field">
             <span className="field-label">Описание</span>
-            <textarea className="field-input field-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Коротко о проекте (необязательно)" maxLength={350} rows={3} />
-            <span className="field-hint">{description.length} / 350 символов</span>
+            <textarea
+              className="field-input field-textarea" value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Коротко о проекте" maxLength={350} rows={3}
+            />
+            <span className="field-hint">{description.length} / 350</span>
           </label>
 
           <label className="field">
-            <span className="field-label">Пароль на запись<span className="required">*</span></span>
-            <input type="password" className="field-input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Только те, кто знает пароль, смогут добавлять файлы" required />
+            <span className="field-label">Пароль<span className="required">*</span></span>
+            <input
+              type="password"
+              className={`field-input ${passwordError ? 'field-input-error' : ''}`}
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
+              placeholder="Пароль для создания"
+              required
+            />
+            {passwordError && <span className="field-error">{passwordError}</span>}
           </label>
 
-          {/* Dashed drop zone — тот самый прямоугольник */}
           <div className="field">
             <span className="field-label">Файлы</span>
             <div
@@ -159,16 +180,22 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
               }}
               onClick={() => fileInputRef.current.click()}
             >
-              <input type="file" multiple ref={fileInputRef} onChange={(e) => handleFiles(e.target.files)} style={{ display: 'none' }} accept="image/*,video/*,.html,.css,.js,.json,.txt" />
+              <input
+                type="file" multiple ref={fileInputRef}
+                onChange={(e) => handleFiles(e.target.files)}
+                style={{ display: 'none' }}
+                accept="image/*,video/*,.html,.css,.js,.json,.txt"
+              />
               <div className="drop-zone-icon">📎</div>
-              <div className="drop-zone-text">Перетащите файлы сюда или нажмите для выбора</div>
-              <div className="drop-zone-subtext">Максимум 50 МБ · PNG, JPG, GIF, MP4, WEBM, HTML, CSS, JS, JSON, TXT</div>
+              <div className="drop-zone-text">Перетащите файлы сюда или нажмите</div>
+              <div className="drop-zone-subtext">
+                Максимум 50 МБ · PNG, JPG, GIF, MP4, WEBM, HTML, CSS, JS, JSON, TXT
+              </div>
             </div>
 
-            {/* Превью загруженных файлов сеткой */}
             {files.length > 0 && (
               <div className="modal-file-grid">
-                {files.map(f => (
+                {files.map((f) => (
                   <div key={f.id} className="modal-file-card">
                     <div className="modal-file-thumb">
                       {f.type.startsWith('image/') ? (
@@ -183,7 +210,10 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
                       <span className="modal-file-name" title={f.name}>{f.name}</span>
                       <span className="modal-file-size">{formatSize(f.size)}</span>
                     </div>
-                    <button type="button" className="modal-file-remove" onClick={() => removeFile(f.id)} aria-label="Удалить файл">✕</button>
+                    <button
+                      type="button" className="modal-file-remove"
+                      onClick={() => removeFile(f.id)}
+                    >✕</button>
                   </div>
                 ))}
               </div>
@@ -191,9 +221,11 @@ const CreateRepoModal = ({ onClose, onCreate }) => {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={isUploading}>Отмена</button>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={isUploading}>
+              Отмена
+            </button>
             <button type="submit" className="btn-primary" disabled={isUploading}>
-              {isUploading ? 'Загрузка...' : 'Создать репозиторий'}
+              {isUploading ? 'Загрузка...' : 'Создать'}
             </button>
           </div>
         </form>
