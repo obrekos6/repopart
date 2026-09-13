@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import './Createrepomodal.css';
+import './CreateRepoModal.css';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.html', '.css', '.js', '.json', '.txt'];
