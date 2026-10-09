@@ -8,40 +8,26 @@ import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
 
-// Только основное: преломление + тонировка + яркость.
-// Всё остальное (хроматика, спекуляры, Френель, свечения, тени) — в 0.
 const GLASS_CONFIGS = {
   light: {
     blurAmount: 0,
     brightness: -0.08,
-    saturation: 0,
+    saturation: 0.05,
     tintStrength: 0.25,
-    refraction: 0.75,
+    refraction: 2,
     opacity: 1,
-    chromAberration: 0,
-    edgeHighlight: 0,
-    specular: 0,
-    fresnel: 0,
-    distortion: 0,
-    shadowOpacity: 0,
-    shadowSpread: 0,
-    shadowOffsetY: 0,
+    edgeHighlight: 0.18,
+    shadowOpacity: 0.35,
   },
   dark: {
     blurAmount: 0,
     brightness: -0.35,
-    saturation: 0,
+    saturation: -0.05,
     tintStrength: 0.55,
-    refraction: 0.75,
+    refraction: 2,
     opacity: 1,
-    chromAberration: 0,
-    edgeHighlight: 0,
-    specular: 0,
-    fresnel: 0,
-    distortion: 0,
-    shadowOpacity: 0,
-    shadowSpread: 0,
-    shadowOffsetY: 0,
+    edgeHighlight: 0.15,
+    shadowOpacity: 0.45,
   },
 };
 
@@ -69,6 +55,7 @@ export default function FeedScreen() {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
+  // Первичная загрузка + realtime
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
@@ -78,6 +65,35 @@ export default function FeedScreen() {
       if (data) setPublications(data);
     };
     load();
+
+    const channel = supabase
+      .channel('repositories-feed')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'repositories' },
+        (payload) => {
+          setPublications((prev) => [payload.new, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'repositories' },
+        (payload) => {
+          setPublications((prev) => prev.filter((p) => p.id !== payload.old.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'repositories' },
+        (payload) => {
+          setPublications((prev) =>
+            prev.map((p) => (p.id === payload.new.id ? payload.new : p))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
   const getTheme = () =>
@@ -91,7 +107,7 @@ export default function FeedScreen() {
     if (logoRef.current) logoRef.current.dataset.config = configStr;
   }, []);
 
-  // Инициализация LiquidGlass
+  // Init LiquidGlass
   useEffect(() => {
     if (!isMobile) return;
     if (publications.length === 0) return;
@@ -122,12 +138,10 @@ export default function FeedScreen() {
             cornerRadius: 22,
             zRadius: 18,
             ...GLASS_CONFIGS[theme],
-            chromAberration: 0,
-            specular: 0,
-            fresnel: 0,
-            edgeHighlight: 0,
-            shadowOpacity: 0,
-            shadowSpread: 0,
+            chromAberration: 0.06,
+            specular: 0.4,
+            fresnel: 0.9,
+            shadowSpread: 12,
             button: true,
           },
         });
@@ -166,6 +180,7 @@ export default function FeedScreen() {
     };
   }, [isMobile, publications.length, applyGlassConfig]);
 
+  // Смена темы
   useEffect(() => {
     if (!isMobile || !glassReady) return;
     const mq = window.matchMedia('(prefers-color-scheme: light)');
@@ -174,24 +189,32 @@ export default function FeedScreen() {
     return () => mq.removeEventListener('change', handler);
   }, [isMobile, glassReady, applyGlassConfig]);
 
+  // markChanged при изменении данных
   useEffect(() => {
     if (glassInstance.current?.markChanged) glassInstance.current.markChanged();
   }, [publications, visibleCount]);
 
+  // markChanged при скролле с защитой от перекрытия кадров (фикс мерцания)
   useEffect(() => {
     if (!isMobile || !glassReady) return;
 
     let rafId = null;
-    let pending = false;
+    let inFlight = false;
 
     const handleScroll = () => {
-      if (pending) return;
-      pending = true;
+      if (inFlight || rafId) return;
       rafId = requestAnimationFrame(() => {
-        pending = false;
         rafId = null;
-        if (glassInstance.current?.markChanged) {
-          glassInstance.current.markChanged();
+        if (inFlight) return;
+        inFlight = true;
+        try {
+          if (glassInstance.current?.markChanged) {
+            glassInstance.current.markChanged();
+          }
+        } finally {
+          requestAnimationFrame(() => {
+            inFlight = false;
+          });
         }
       });
     };
@@ -203,6 +226,7 @@ export default function FeedScreen() {
     };
   }, [isMobile, glassReady]);
 
+  // Бесконечный скролл
   useEffect(() => {
     if (!sentinelRef.current) return;
     if (publications.length <= visibleCount) return;

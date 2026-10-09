@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { formatTime } from '../../../lib/formatTime';
+import Lightbox from './Lightbox';
 import './PostCard.css';
 
 const formatNumber = (num) => {
@@ -8,11 +10,8 @@ const formatNumber = (num) => {
   return num;
 };
 
-// Supabase Image Transformations — уменьшает картинку до 800px ширины, качество 70
-// Это бесплатно и уменьшает трафик в 3–5 раз
 const transformImageUrl = (url) => {
   if (!url) return url;
-  // Не трогаем SVG и gif — у них свои особенности
   if (url.match(/\.(svg|gif)(\?|$)/i)) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}width=800&quality=70&resize=contain`;
@@ -23,6 +22,7 @@ export default function PostCard({ post, currentUser }) {
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [lightboxFile, setLightboxFile] = useState(null);
   const carouselRef = useRef(null);
 
   const authorName = post.author_email ? post.author_email.split('@')[0] : 'user';
@@ -68,36 +68,48 @@ export default function PostCard({ post, currentUser }) {
     return () => supabase.removeChannel(channel);
   }, [post.id, currentUser]);
 
+  // Трекинг просмотра через RPC (защита от накрутки)
   useEffect(() => {
-    const viewKey = `viewed_post_${post.id}`;
-    if (localStorage.getItem(viewKey)) return;
+    if (!currentUser) return;
 
-    const incrementViews = async () => {
-      await supabase
-        .from('repositories')
-        .update({ views: (post.views || 0) + 1 })
-        .eq('id', post.id);
-      localStorage.setItem(viewKey, 'true');
+    const track = async () => {
+      await supabase.rpc('track_view', {
+        p_post_id: post.id,
+        p_user_id: currentUser.id,
+      });
     };
-    incrementViews();
-  }, [post.id]);
+    track();
+  }, [post.id, currentUser]);
 
   const handleLike = async () => {
     if (!currentUser) return;
-    if (isLiked) {
-      await supabase
-        .from('reactions')
-        .delete()
-        .eq('repository_id', post.id)
-        .eq('user_id', currentUser.id);
-    } else {
-      await supabase
-        .from('reactions')
-        .insert({
-          repository_id: post.id,
-          user_id: currentUser.id,
-          emoji: '❤️',
-        });
+
+    // Optimistic update — UI меняется мгновенно
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikes((prev) => (wasLiked ? prev - 1 : prev + 1));
+
+    try {
+      if (wasLiked) {
+        await supabase
+          .from('reactions')
+          .delete()
+          .eq('repository_id', post.id)
+          .eq('user_id', currentUser.id);
+      } else {
+        await supabase
+          .from('reactions')
+          .insert({
+            repository_id: post.id,
+            user_id: currentUser.id,
+            emoji: '❤️',
+          });
+      }
+    } catch (err) {
+      // Откат при ошибке
+      setIsLiked(wasLiked);
+      setLikes((prev) => (wasLiked ? prev + 1 : prev - 1));
+      console.error(err);
     }
   };
 
@@ -134,10 +146,11 @@ export default function PostCard({ post, currentUser }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      // fallback — открыть в новой вкладке
       window.open(file.url, '_blank');
     }
   };
+
+  const openLightbox = (file) => setLightboxFile(file);
 
   const renderMedia = (file) => {
     if (file.type.startsWith('image/')) {
@@ -147,6 +160,8 @@ export default function PostCard({ post, currentUser }) {
           alt={post.name || ''}
           loading="lazy"
           decoding="async"
+          onClick={() => openLightbox(file)}
+          style={{ cursor: 'zoom-in' }}
         />
       );
     }
@@ -160,6 +175,8 @@ export default function PostCard({ post, currentUser }) {
           playsInline
           preload="none"
           disablePictureInPicture
+          onClick={() => openLightbox(file)}
+          style={{ cursor: 'zoom-in' }}
         />
       );
     }
@@ -170,9 +187,11 @@ export default function PostCard({ post, currentUser }) {
         </div>
       );
     }
-    // Прочие файлы — показываем иконку
     return (
-      <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+      <div
+        onClick={() => openLightbox(file)}
+        style={{ padding: '60px 20px', textAlign: 'center', cursor: 'zoom-in' }}
+      >
         <div style={{ fontSize: '3rem', marginBottom: 8 }}>📄</div>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{file.name}</div>
       </div>
@@ -180,115 +199,117 @@ export default function PostCard({ post, currentUser }) {
   };
 
   return (
-    <div className="post-card">
-      <div className="post-header">
-        <span className="post-author">{authorName}</span>
-        <span className="post-time">
-          {new Date(post.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-        </span>
-      </div>
+    <>
+      <div className="post-card">
+        <div className="post-header">
+          <span className="post-author">{authorName}</span>
+          <span className="post-time">{formatTime(post.created_at)}</span>
+        </div>
 
-      {files.length > 0 && (
-        <>
-          <div className="post-media-wrapper">
-            {files.length > 1 ? (
-              <div className="post-carousel-container">
-                {activeSlide > 0 && (
-                  <button
-                    className="post-carousel-arrow post-carousel-arrow-left"
-                    onClick={prevSlide}
-                    aria-label="Назад"
+        {files.length > 0 && (
+          <>
+            <div className="post-media-wrapper">
+              {files.length > 1 ? (
+                <div className="post-carousel-container">
+                  {activeSlide > 0 && (
+                    <button
+                      className="post-carousel-arrow post-carousel-arrow-left"
+                      onClick={prevSlide}
+                      aria-label="Назад"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </button>
+                  )}
+
+                  <div
+                    className="post-media-carousel"
+                    ref={carouselRef}
+                    onScroll={handleCarouselScroll}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
-                )}
+                    {files.map((file, i) => (
+                      <div key={file.id || i} className="post-media-slide">
+                        {renderMedia(file)}
+                      </div>
+                    ))}
+                  </div>
 
-                <div
-                  className="post-media-carousel"
-                  ref={carouselRef}
-                  onScroll={handleCarouselScroll}
-                >
-                  {files.map((file, i) => (
-                    <div key={file.id || i} className="post-media-slide">
-                      {renderMedia(file)}
-                    </div>
-                  ))}
+                  {activeSlide < files.length - 1 && (
+                    <button
+                      className="post-carousel-arrow post-carousel-arrow-right"
+                      onClick={nextSlide}
+                      aria-label="Вперёд"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <div className="post-media-single">{renderMedia(files[0])}</div>
+              )}
+            </div>
 
-                {activeSlide < files.length - 1 && (
-                  <button
-                    className="post-carousel-arrow post-carousel-arrow-right"
-                    onClick={nextSlide}
-                    aria-label="Вперёд"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="post-media-single">
-                {renderMedia(files[0])}
+            {files.length > 1 && (
+              <div className="post-media-dots">
+                {files.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`post-media-dot ${i === activeSlide ? 'is-active' : ''}`}
+                    onClick={() => goToSlide(i)}
+                  />
+                ))}
               </div>
             )}
+          </>
+        )}
+
+        <div className="post-footer">
+          <div
+            className={`post-stat ${isLiked ? 'is-liked' : ''}`}
+            onClick={handleLike}
+            style={{ cursor: 'pointer' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <span>{formatNumber(likes)}</span>
           </div>
 
-          {files.length > 1 && (
-            <div className="post-media-dots">
-              {files.map((_, i) => (
-                <span
-                  key={i}
-                  className={`post-media-dot ${i === activeSlide ? 'is-active' : ''}`}
-                  onClick={() => goToSlide(i)}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+          <div className="post-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>{formatNumber(views)}</span>
+          </div>
 
-      <div className="post-footer">
-        <div
-          className={`post-stat ${isLiked ? 'is-liked' : ''}`}
-          onClick={handleLike}
-          style={{ cursor: 'pointer' }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-          <span>{formatNumber(likes)}</span>
+          <button
+            className="post-download-btn"
+            onClick={handleDownload}
+            aria-label="Скачать"
+            title="Скачать"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
         </div>
 
-        <div className="post-stat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          <span>{formatNumber(views)}</span>
-        </div>
-
-        <button
-          className="post-download-btn"
-          onClick={handleDownload}
-          aria-label="Скачать"
-          title="Скачать"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </button>
+        {post.name && (
+          <div className="post-caption">
+            <span className="post-caption-text">{post.name}</span>
+          </div>
+        )}
       </div>
 
-      {post.name && (
-        <div className="post-caption">
-          <span className="post-caption-text">{post.name}</span>
-        </div>
+      {lightboxFile && (
+        <Lightbox file={lightboxFile} onClose={() => setLightboxFile(null)} />
       )}
-    </div>
+    </>
   );
 }

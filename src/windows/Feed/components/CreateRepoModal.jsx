@@ -1,47 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 МБ
-
-// Расширенные списки — почти все форматы
-const ALLOWED_EXTENSIONS = [
-  // Картинки
-  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.avif', '.heic', '.heif',
-  // Видео
-  '.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v', '.3gp', '.flv', '.wmv',
-  // Аудио
-  '.mp3', '.wav', '.flac', '.aac', '.m4a', '.opus', '.wma',
-  // Документы
-  '.pdf', '.txt', '.md', '.rtf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.csv',
-  // Код
-  '.html', '.css', '.js', '.jsx', '.ts', '.tsx', '.json', '.xml', '.yml', '.yaml',
-  // Архивы
-  '.zip', '.rar', '.7z', '.tar', '.gz',
-];
-
-const ALLOWED_MIME_TYPES = [
-  // Картинки
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-  'image/bmp', 'image/x-icon', 'image/avif', 'image/heic', 'image/heif',
-  // Видео
-  'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo',
-  'video/x-matroska', 'video/x-m4v', 'video/3gpp', 'video/x-flv', 'video/x-ms-wmv',
-  // Аудио
-  'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/aac', 'audio/mp4',
-  'audio/ogg', 'audio/opus', 'audio/x-ms-wma',
-  // Документы
-  'application/pdf', 'text/plain', 'text/markdown', 'application/rtf',
-  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/csv',
-  // Код
-  'text/html', 'text/css', 'application/javascript', 'application/json',
-  'application/xml', 'text/xml', 'text/yaml',
-  // Архивы
-  'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-  'application/x-tar', 'application/gzip',
-];
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B';
@@ -74,12 +34,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
       alert(`Файл "${file.name}" слишком большой! Максимум: ${formatSize(MAX_FILE_SIZE)}.`);
       return false;
     }
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    const isAllowed = ALLOWED_MIME_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(ext);
-    if (!isAllowed) {
-      alert(`Формат файла "${file.name}" не поддерживается.`);
-      return false;
-    }
     return true;
   };
 
@@ -104,7 +58,7 @@ export default function CreateRepoModal({ onClose, onCreate }) {
     const { error } = await supabase.storage
       .from('repopart-files')
       .upload(fileName, fileObj.file, {
-        cacheControl: '31536000', // 1 год — браузер кэширует надолго
+        cacheControl: '31536000',
         upsert: false,
       });
     if (error) throw error;
