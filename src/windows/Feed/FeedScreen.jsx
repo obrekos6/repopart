@@ -8,6 +8,10 @@ import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
 
+// Переключатель LiquidGlass. Сейчас false — используется CSS-стекло.
+// Весь код LiquidGlass сохранён и готов к включению.
+const LIQUID_GLASS_ENABLED = false;
+
 const GLASS_CONFIGS = {
   light: {
     blurAmount: 0,
@@ -55,7 +59,7 @@ export default function FeedScreen() {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
-  // Первичная загрузка + realtime
+  // Загрузка постов + realtime
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
@@ -107,8 +111,9 @@ export default function FeedScreen() {
     if (logoRef.current) logoRef.current.dataset.config = configStr;
   }, []);
 
-  // Init LiquidGlass
+  // Init LiquidGlass (отключено флагом)
   useEffect(() => {
+    if (!LIQUID_GLASS_ENABLED) return;
     if (!isMobile) return;
     if (publications.length === 0) return;
 
@@ -182,6 +187,7 @@ export default function FeedScreen() {
 
   // Смена темы
   useEffect(() => {
+    if (!LIQUID_GLASS_ENABLED) return;
     if (!isMobile || !glassReady) return;
     const mq = window.matchMedia('(prefers-color-scheme: light)');
     const handler = () => applyGlassConfig(getTheme());
@@ -191,11 +197,13 @@ export default function FeedScreen() {
 
   // markChanged при изменении данных
   useEffect(() => {
+    if (!LIQUID_GLASS_ENABLED) return;
     if (glassInstance.current?.markChanged) glassInstance.current.markChanged();
   }, [publications, visibleCount]);
 
-  // markChanged при скролле с защитой от перекрытия кадров (фикс мерцания)
+  // markChanged при скролле с защитой от перекрытия кадров
   useEffect(() => {
+    if (!LIQUID_GLASS_ENABLED) return;
     if (!isMobile || !glassReady) return;
 
     let rafId = null;
@@ -250,7 +258,7 @@ export default function FeedScreen() {
     await supabase.auth.signOut();
   };
 
-  const useGlass = isMobile && glassReady;
+  const useGlass = LIQUID_GLASS_ENABLED && isMobile && glassReady;
   const menuClass = `menu-btn${useGlass ? ' glass-el' : ''}`;
   const doubleClass = `double-btn${useGlass ? ' glass-el' : ''}`;
   const logoClass = `fixed-logo${useGlass ? ' glass-el' : ''}`;

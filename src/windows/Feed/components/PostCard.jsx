@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabaseClient';
 import { formatTime } from '../../../lib/formatTime';
 import Lightbox from './Lightbox';
@@ -23,40 +24,69 @@ export default function PostCard({ post, currentUser }) {
   const [isLiked, setIsLiked] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [lightboxFile, setLightboxFile] = useState(null);
+  const [heartBurst, setHeartBurst] = useState(false);
   const carouselRef = useRef(null);
+
+  const likePendingRef = useRef(false);
+  const lastLocalChangeRef = useRef(0);
 
   const authorName = post.author_email ? post.author_email.split('@')[0] : 'user';
   const files = post.files || [];
 
-  const loadLikes = async () => {
-    const { count } = await supabase
-      .from('reactions')
-      .select('*', { count: 'exact', head: true })
-      .eq('repository_id', post.id);
-    setLikes(count || 0);
-
-    if (currentUser) {
-      const { data } = await supabase
-        .from('reactions')
-        .select('id')
-        .eq('repository_id', post.id)
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-      setIsLiked(!!data);
-    }
-  };
-
+  // Первичная загрузка состояния лайков
   useEffect(() => {
-    loadLikes();
+    const load = async () => {
+      if (likePendingRef.current) return;
+
+      const { count } = await supabase
+        .from('reactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('repository_id', post.id);
+
+      if (likePendingRef.current) return;
+      setLikes(count || 0);
+
+      if (currentUser) {
+        const { data } = await supabase
+          .from('reactions')
+          .select('id')
+          .eq('repository_id', post.id)
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+        if (likePendingRef.current) return;
+        setIsLiked(!!data);
+      }
+    };
+    load();
   }, [post.id, currentUser]);
 
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'reactions', filter: `repository_id=eq.${post.id}` },
-        () => loadLikes()
+        async () => {
+          if (likePendingRef.current) return;
+          if (Date.now() - lastLocalChangeRef.current < 2000) return;
+
+          const { count } = await supabase
+            .from('reactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('repository_id', post.id);
+          setLikes(count || 0);
+
+          if (currentUser) {
+            const { data } = await supabase
+              .from('reactions')
+              .select('id')
+              .eq('repository_id', post.id)
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+            setIsLiked(!!data);
+          }
+        }
       )
       .on(
         'postgres_changes',
@@ -68,26 +98,34 @@ export default function PostCard({ post, currentUser }) {
     return () => supabase.removeChannel(channel);
   }, [post.id, currentUser]);
 
-  // Трекинг просмотра через RPC (защита от накрутки)
+  // Трекинг просмотра
   useEffect(() => {
     if (!currentUser) return;
-
-    const track = async () => {
-      await supabase.rpc('track_view', {
-        p_post_id: post.id,
-        p_user_id: currentUser.id,
-      });
-    };
-    track();
+    supabase.rpc('track_view', {
+      p_post_id: post.id,
+      p_user_id: currentUser.id,
+    });
   }, [post.id, currentUser]);
 
   const handleLike = async () => {
     if (!currentUser) return;
+    if (likePendingRef.current) return; // ← блокируем быстрые клики
 
-    // Optimistic update — UI меняется мгновенно
+    likePendingRef.current = true;
+    lastLocalChangeRef.current = Date.now();
+
     const wasLiked = isLiked;
+    const prevLikes = likes;
+
+    // Оптимистичное обновление UI
     setIsLiked(!wasLiked);
-    setLikes((prev) => (wasLiked ? prev - 1 : prev + 1));
+    setLikes(wasLiked ? prevLikes - 1 : prevLikes + 1);
+
+    // Анимация «выстрела» сердечка только при лайке (не при снятии)
+    if (!wasLiked) {
+      setHeartBurst(true);
+      setTimeout(() => setHeartBurst(false), 600);
+    }
 
     try {
       if (wasLiked) {
@@ -108,8 +146,13 @@ export default function PostCard({ post, currentUser }) {
     } catch (err) {
       // Откат при ошибке
       setIsLiked(wasLiked);
-      setLikes((prev) => (wasLiked ? prev + 1 : prev - 1));
+      setLikes(prevLikes);
       console.error(err);
+    } finally {
+      // Освобождаем блокировку через 500 мс
+      setTimeout(() => {
+        likePendingRef.current = false;
+      }, 500);
     }
   };
 
@@ -268,13 +311,14 @@ export default function PostCard({ post, currentUser }) {
 
         <div className="post-footer">
           <div
-            className={`post-stat ${isLiked ? 'is-liked' : ''}`}
+            className={`post-stat like-btn ${isLiked ? 'is-liked' : ''} ${heartBurst ? 'is-bursting' : ''}`}
             onClick={handleLike}
-            style={{ cursor: 'pointer' }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
+            <div className="like-icon-wrapper">
+              <svg className="like-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+            </div>
             <span>{formatNumber(likes)}</span>
           </div>
 
@@ -307,8 +351,9 @@ export default function PostCard({ post, currentUser }) {
         )}
       </div>
 
-      {lightboxFile && (
-        <Lightbox file={lightboxFile} onClose={() => setLightboxFile(null)} />
+      {lightboxFile && createPortal(
+        <Lightbox file={lightboxFile} onClose={() => setLightboxFile(null)} />,
+        document.body
       )}
     </>
   );

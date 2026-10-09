@@ -159,11 +159,6 @@
   color: var(--text-primary);
 }
 
-.post-stat.is-liked svg {
-  color: #ef4444;
-  fill: #ef4444;
-}
-
 /* Кнопка скачать */
 .post-download-btn {
   margin-left: auto;
@@ -201,4 +196,73 @@
 .post-caption-text {
   font-weight: 400;
   color: var(--text-primary);
+}
+
+/* ============================================================
+   LIKE BUTTON — анимация и состояние
+   ============================================================ */
+.like-btn {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.like-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.like-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-primary);
+  fill: none;
+  transition: color 0.2s ease, fill 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.like-btn.is-liked .like-icon {
+  color: #ef4444;
+  fill: #ef4444;
+}
+
+.like-btn.is-bursting .like-icon {
+  animation: likePop 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes likePop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.5); }
+  55%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Вылетающее сердечко */
+.like-btn.is-bursting .like-icon-wrapper::before {
+  content: '❤️';
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+  animation: heartFly 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+}
+
+@keyframes heartFly {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(35px, -55px) scale(1.5) rotate(15deg);
+    opacity: 0;
+  }
 }
