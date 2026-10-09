@@ -8,6 +8,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Карточка сливается с фоном — без скругления */
 }
 
 .post-header {
@@ -31,10 +32,10 @@
   margin-left: auto;
 }
 
-/* Медиа-контейнер */
+/* Медиа-контейнер — верхние углы как у кнопок, нижние по 12px */
 .post-media-wrapper {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 21px 21px 12px 12px;
   overflow: hidden;
   background-color: var(--bg-primary);
   position: relative;
@@ -240,7 +241,6 @@
   100% { transform: scale(1); }
 }
 
-/* Вылетающее сердечко */
 .like-btn.is-bursting .like-icon-wrapper::before {
   content: '❤️';
   position: absolute;
