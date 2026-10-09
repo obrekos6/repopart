@@ -1,0 +1,204 @@
+/* ============================================================
+   POST CARD
+   ============================================================ */
+.post-card {
+  width: 420px;
+  max-width: 100%;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.post-author {
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.post-time {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+/* Медиа-контейнер */
+.post-media-wrapper {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  position: relative;
+}
+
+.post-carousel-container {
+  position: relative;
+  width: 100%;
+}
+
+.post-media-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  width: 100%;
+}
+
+.post-media-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.post-media-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+.post-media-slide img,
+.post-media-slide video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.post-media-single {
+  width: 100%;
+}
+
+.post-media-single img,
+.post-media-single video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Стрелки */
+.post-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: background-color 0.15s ease;
+}
+
+.post-carousel-arrow:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.post-carousel-arrow-left {
+  left: 8px;
+}
+
+.post-carousel-arrow-right {
+  right: 8px;
+}
+
+/* Точки */
+.post-media-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0 0 0;
+}
+
+.post-media-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.post-media-dot.is-active {
+  opacity: 1;
+  background-color: var(--text-primary);
+}
+
+/* Футер */
+.post-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.post-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.post-stat svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-primary);
+}
+
+.post-stat.is-liked svg {
+  color: #ef4444;
+  fill: #ef4444;
+}
+
+/* Кнопка скачать */
+.post-download-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.post-download-btn:hover {
+  opacity: 0.6;
+}
+
+.post-download-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Подпись */
+.post-caption {
+  padding: 0 0 12px 0;
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.post-caption-text {
+  font-weight: 400;
+  color: var(--text-primary);
+}

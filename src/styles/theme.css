@@ -1,44 +1,92 @@
-/* Базовые переменные (светлая тема по умолчанию) */
-:root {
-  --bg-primary: rgb(252, 252, 251);
-  --bg-topbar: rgb(252, 252, 251);
-  --bg-search: rgb(242, 242, 240);
-  --bg-card: rgb(246, 246, 245);
-  --border-color: rgba(0, 0, 0, 0.1);
-  --text-primary: #1a1a1a;
-  --text-secondary: #5a5a5a;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  --accent: #4a5df9;
-  --accent-hover: #3948c9;
-  --accent-text: #ffffff;
+/* ============ ПОДКЛЮЧЕНИЕ ШРИФТА SF PRO DISPLAY ============ */
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('../assets/fonts/SF-Pro-Display-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* Тёмная тема (активируется, если в системе включена тёмная тема) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: rgb(17, 17, 17);
-    --bg-topbar: rgb(17, 17, 17);
-    --bg-search: rgb(30, 30, 30);
-    --bg-card: rgb(26, 26, 26);
-    --border-color: rgba(255, 255, 255, 0.1);
-    --text-primary: #e4e6eb;
-    --text-secondary: #9ba1a8;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('../assets/fonts/SF-Pro-Display-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
 
-    --accent: #4a5df9;
-    --accent-hover: #6b7bfb;
-    --accent-text: #ffffff;
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('../assets/fonts/SF-Pro-Display-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============ ОБЩИЕ + ТЁМНАЯ ТЕМА (по умолчанию) ============ */
+:root {
+  --accent: rgb(0, 139, 255);
+  --accent-text: #ffffff;
+
+  --font-main: 'SF Pro Display', Roboto, -apple-system, "apple color emoji", BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --font-logo: 'SF Pro Display', Roboto, sans-serif;
+
+  /* Тёмная тема */
+  --bg-primary: rgb(0, 0, 0);
+  --text-primary: rgb(245, 245, 245);
+  --text-secondary: rgb(107, 106, 107);
+  --bg-topbar: rgb(0, 0, 0);
+  --bg-search: rgb(20, 20, 20);
+  --bg-card: rgb(10, 10, 10);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  --logo-color: #ffffff;
+
+  /* Кнопка меню: тёмная снаружи, белая внутри (прозрачная), белые полоски */
+  --menu-btn-bg: rgba(30, 30, 30, 0.95);
+  --menu-btn-bg-hover: rgba(45, 45, 45, 0.95);
+  --menu-btn-stripe: #ffffff;
+  --menu-btn-inner: #ffffff;
+  --menu-btn-inner-opacity: 0.15;
+  --menu-btn-shadow: 0 1px 6px 0 rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  --glass-glow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --accent-glow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* ============ СВЕТЛАЯ ТЕМА (если устройство предпочитает светлую) ============ */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: rgb(255, 255, 255);
+    --text-primary: rgb(0, 0, 0);
+    --text-secondary: rgb(112, 117, 121);
+    --bg-topbar: rgb(255, 255, 255);
+    --bg-search: rgb(242, 242, 242);
+    --bg-card: rgb(255, 255, 255);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    --logo-color: #000000;
+
+    /* Кнопка меню: белая снаружи, почти чёрная внутри с 15% прозрачностью, чёрные полоски */
+    --menu-btn-bg: #ffffff;
+    --menu-btn-bg-hover: rgb(245, 245, 245);
+    --menu-btn-stripe: #000000;
+    --menu-btn-inner: rgb(26, 26, 26);
+    --menu-btn-inner-opacity: 0.15;
+    --menu-btn-shadow: 0 1px 6px 0 rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+    --glass-glow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    --accent-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-main);
   margin: 0;
   padding: 0;
-  /* transition на background/color убран специально:
-     он вызывал заметную анимацию-мигание при первой отрисовке страницы,
-     когда браузер применяет тему до и после media query */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

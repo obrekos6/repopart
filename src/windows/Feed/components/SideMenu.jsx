@@ -1,14 +1,12 @@
 import React, { useEffect } from 'react';
-import './SideMenu.css';
 
 const NAV_ITEMS = [
-  { label: 'Репозитории', icon: '📁' },
-  { label: 'Избранное', icon: '⭐' },
+  { label: 'Лента', icon: '📡' },
+  { label: 'Мои посты', icon: '📁' },
   { label: 'Настройки', icon: '⚙️' },
 ];
 
-const SideMenu = ({ open, onClose }) => {
-  // Esc закрывает панель
+export default function SideMenu({ open, onClose }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
@@ -40,6 +38,4 @@ const SideMenu = ({ open, onClose }) => {
       </nav>
     </>
   );
-};
-
-export default SideMenu;
+}
