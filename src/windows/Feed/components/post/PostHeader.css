@@ -1,0 +1,62 @@
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+
+.post-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.post-author-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.post-author {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Синяя галочка «Verified» */
+.post-verified {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.post-time {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.post-menu {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 8px;
+}
+
+.post-menu:hover {
+  background: var(--bg-search);
+}
+
+.post-menu span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}

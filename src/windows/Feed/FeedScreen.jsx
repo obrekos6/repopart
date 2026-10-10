@@ -1,82 +1,213 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Logo from '../../assets/icons/Logo';
-import SideMenu from './components/SideMenu';
-import CreateRepoModal from './components/CreateRepoModal';
-import PublicationList from './components/PublicationList';
+import { LogoutIcon, PlusIcon } from '../../assets/icons/Icons';
+import SideMenu from './components/layout/SideMenu';
+import CreateRepoModal from './components/modals/CreateRepoModal';
+import ProfileModal from './components/modals/ProfileModal';
+import PublicationList from './components/post/PublicationList';
 import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
 
-export default function FeedScreen() {
-  const [publications, setPublications] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+const NAV_ITEMS = [
+  { label: 'Лента', icon: '📡', action: 'feed' },
+  { label: 'Профиль', icon: '👤', action: 'profile' },
+  { label: 'Мои посты', icon: '📁', action: 'my' },
+  { label: 'Настройки', icon: '⚙️', action: 'settings' },
+];
 
-  const sentinelRef = useRef(null);
+const TABS = [
+  { id: 'for-you', label: 'Для вас' },
+  { id: 'fresh', label: 'Свежее' },
+  { id: 'top', label: 'Топ' },
+];
+
+function Tabs({ tabs, active, onChange }) {
+  const containerRef = useRef(null);
+  const [capsule, setCapsule] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
-    const load = async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateCapsule = () => {
+      const buttons = container.querySelectorAll('.tab');
+      const index = tabs.findIndex((t) => t.id === active);
+      const btn = buttons[index];
+      if (btn) {
+        setCapsule({ left: btn.offsetLeft, width: btn.offsetWidth });
+      }
+    };
+
+    updateCapsule();
+    window.addEventListener('resize', updateCapsule);
+    return () => window.removeEventListener('resize', updateCapsule);
+  }, [active, tabs]);
+
+  return (
+    <div className="tabs" ref={containerRef}>
+      <div
+        className="tabs-capsule"
+        style={{
+          transform: `translateX(${capsule.left}px)`,
+          width: capsule.width,
+        }}
+      />
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          className={`tab ${active === t.id ? 'is-active' : ''}`}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function FeedScreen() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [tab, setTab] = useState('for-you');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const sentinelRef = useRef(null);
+  const trackedIdsRef = useRef(new Set());
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
+  }, []);
+
+  const loadPosts = useCallback(async (mode, limit, offset) => {
+    if (mode === 'for-you') {
+      const { data, error } = await supabase.rpc('get_recommended_feed', {
+        p_user_id: currentUser?.id || null,
+        p_limit: limit,
+        p_offset: offset,
+      });
+      if (error) return [];
+      return data || [];
+    }
+
+    if (mode === 'top') {
       const { data } = await supabase
         .from('repositories')
         .select('*')
-        .order('created_at', { ascending: false });
-      if (data) setPublications(data);
-    };
-    load();
+        .order('hot_score', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      return data || [];
+    }
 
+    const { data } = await supabase
+      .from('repositories')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    return data || [];
+  }, [currentUser]);
+
+  const load = useCallback(async (reset = false) => {
+    if (loadingRef.current) return;
+    if (!reset && !hasMore) return;
+
+    loadingRef.current = true;
+    setLoading(true);
+
+    const offset = reset ? 0 : posts.length;
+    const data = await loadPosts(tab, POSTS_PER_PAGE, offset);
+
+    if (reset) {
+      setPosts(data);
+      trackedIdsRef.current = new Set();
+    } else {
+      setPosts((prev) => [...prev, ...data]);
+    }
+
+    setHasMore(data.length === POSTS_PER_PAGE);
+    setLoading(false);
+    loadingRef.current = false;
+  }, [tab, posts.length, hasMore, loadPosts]);
+
+  useEffect(() => {
+    load(true);
+  }, [tab, currentUser]);
+
+  const handleLogoClick = useCallback(async () => {
+    if (refreshing) return;
+
+    const isAtTop = window.scrollY < 5;
+
+    if (!isAtTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setRefreshing(true);
+
+    try {
+      const data = await loadPosts(tab, POSTS_PER_PAGE, 0);
+      setPosts(data);
+      trackedIdsRef.current = new Set();
+      setHasMore(data.length === POSTS_PER_PAGE);
+    } catch {
+      // тихо игнорируем
+    }
+
+    await new Promise((r) => setTimeout(r, 600));
+    setRefreshing(false);
+  }, [refreshing, tab, loadPosts]);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    if (!hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) load(false);
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, load]);
+
+  useEffect(() => {
     const channel = supabase
       .channel('repositories-feed')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'repositories' },
-        (payload) => {
-          setPublications((prev) => [payload.new, ...prev]);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'repositories' },
-        (payload) => {
-          setPublications((prev) => prev.filter((p) => p.id !== payload.old.id));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'repositories' },
-        (payload) => {
-          setPublications((prev) =>
-            prev.map((p) => (p.id === payload.new.id ? payload.new : p))
-          );
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'repositories' },
+        (p) => setPosts((prev) => [p.new, ...prev]))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'repositories' },
+        (p) => setPosts((prev) => prev.filter((x) => x.id !== p.old.id)))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'repositories' },
+        (p) => setPosts((prev) => prev.map((x) => x.id === p.new.id ? p.new : x)))
       .subscribe();
-
     return () => supabase.removeChannel(channel);
   }, []);
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
-    if (publications.length <= visibleCount) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => prev + POSTS_PER_PAGE);
-        }
-      },
-      { rootMargin: '200px' }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [publications.length, visibleCount]);
-
-  const visiblePublications = publications.slice(0, visibleCount);
-  const hasMore = publications.length > visibleCount;
+    if (!currentUser || posts.length === 0) return;
+    const newIds = posts.map((p) => p.id).filter((id) => !trackedIdsRef.current.has(id));
+    if (newIds.length === 0) return;
+    newIds.forEach((id) => trackedIdsRef.current.add(id));
+    supabase.rpc('track_views_batch', { p_post_ids: newIds, p_user_id: currentUser.id });
+  }, [currentUser, posts.length]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleNavClick = (action) => {
+    if (action === 'profile') setProfileOpen(true);
+    setMenuOpen(false);
   };
 
   return (
@@ -84,63 +215,76 @@ export default function FeedScreen() {
       <div className="app">
         <div className="app-bg" />
 
-        {/* ЕДИНЫЙ HEADER — все три кнопки в одной сетке */}
-        <header className="header">
-          <button
-            className="menu-btn"
-            aria-label="Меню"
-            onClick={() => setMenuOpen(true)}
-          >
-            <div className="menu-btn-stripes">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+        <aside className="desktop-sidebar">
+          <ul className="side-menu-list">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.label}>
+                <button
+                  className="side-menu-item"
+                  onClick={() => handleNavClick(item.action)}
+                >
+                  <span className="side-menu-icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+          <div className="menu-btn-stripes">
+            <span></span><span></span><span></span>
+          </div>
+        </button>
+
+        <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
+          <Logo className="logo-icon" />
+          <span className="logo-text">связь</span>
+        </button>
+
+        <div className="double-btn">
+          <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
+            <LogoutIcon size={20} />
           </button>
-
-          <div className="fixed-logo">
-            <Logo className="topbar-logo-icon" />
-            <span className="topbar-logo-text">связь</span>
-          </div>
-
-          <div className="double-btn">
-            <button
-              className="double-btn-item"
-              aria-label="Выйти"
-              onClick={handleLogout}
-              title="Выйти"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button
-              className="double-btn-item"
-              aria-label="Создать публикацию"
-              onClick={() => setModalOpen(true)}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 1v14M1 8h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </header>
+          <button className="double-btn-item" aria-label="Создать" onClick={() => setModalOpen(true)}>
+            <PlusIcon size={20} />
+          </button>
+        </div>
 
         <main className="main-content">
           <section className="interests-section">
-            <h2 className="section-title">Вот что у нас для вас есть...</h2>
-            <PublicationList publications={visiblePublications} />
-            {hasMore && <div ref={sentinelRef} className="load-more-sentinel" />}
+            <Tabs tabs={TABS} active={tab} onChange={setTab} />
+
+            {refreshing && (
+              <div className="refresh-overlay">
+                <div className="refresh-spinner" />
+                <div className="refresh-text">Обновляем рекомендации...</div>
+              </div>
+            )}
+
+            {loading && posts.length === 0 ? (
+              <div className="loading-feed">Загрузка...</div>
+            ) : (
+              <>
+                <PublicationList publications={posts} currentUser={currentUser} />
+                {hasMore && <div ref={sentinelRef} className="load-more-sentinel" />}
+              </>
+            )}
           </section>
         </main>
-
-        <div className="top-blur-overlay" aria-hidden="true" />
-        <div className="bottom-blur-overlay" aria-hidden="true" />
       </div>
 
-      <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <SideMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={NAV_ITEMS}
+        onItemClick={handleNavClick}
+      />
       {modalOpen && (
-        <CreateRepoModal onClose={() => setModalOpen(false)} onCreate={() => {}} />
+        <CreateRepoModal onClose={() => setModalOpen(false)} onCreate={() => load(true)} />
+      )}
+      {profileOpen && currentUser && (
+        <ProfileModal user={currentUser} onClose={() => setProfileOpen(false)} />
       )}
     </>
   );

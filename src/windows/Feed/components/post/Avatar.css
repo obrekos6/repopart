@@ -1,0 +1,14 @@
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
+.avatar-fallback {
+  user-select: none;
+}
+
+.avatar-fallback text {
+  font-family: var(--font-nickname);
+}

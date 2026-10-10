@@ -5,7 +5,7 @@ import { supabase } from './lib/supabaseClient';
 import './styles/theme.css';
 import './styles/global.css';
 
-function App() {
+export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +21,6 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return <div className="loading-screen">Загрузка...</div>;
-  }
-
-  if (!session) {
-    return <AuthScreen />;
-  }
-
-  return <FeedScreen />;
+  if (loading) return <div className="loading-screen">Загрузка...</div>;
+  return session ? <FeedScreen /> : <AuthScreen />;
 }
-
-export default App;

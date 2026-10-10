@@ -1,61 +1,29 @@
 export function formatTime(dateString) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = Math.floor((now - date) / 1000);
+  const diff = Math.floor((Date.now() - new Date(dateString)) / 1000);
 
   if (diff < 5) return 'только что';
   if (diff < 60) return `${diff} секунд назад`;
 
-  const minutes = Math.floor(diff / 60);
-  if (minutes < 60) {
-    const lastDigit = minutes % 10;
-    const lastTwo = minutes % 100;
-    let word = 'минут';
-    if (lastTwo >= 11 && lastTwo <= 14) word = 'минут';
-    else if (lastDigit === 1) word = 'минуту';
-    else if (lastDigit >= 2 && lastDigit <= 4) word = 'минуты';
-    return `${minutes} ${word} назад`;
-  }
+  const plural = (n, forms) => {
+    const d = n % 10, dd = n % 100;
+    if (dd >= 11 && dd <= 14) return forms[2];
+    if (d === 1) return forms[0];
+    if (d >= 2 && d <= 4) return forms[1];
+    return forms[2];
+  };
 
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    const lastDigit = hours % 10;
-    const lastTwo = hours % 100;
-    let word = 'часов';
-    if (lastTwo >= 11 && lastTwo <= 14) word = 'часов';
-    else if (lastDigit === 1) word = 'час';
-    else if (lastDigit >= 2 && lastDigit <= 4) word = 'часа';
-    return `${hours} ${word} назад`;
-  }
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m} ${plural(m, ['минуту', 'минуты', 'минут'])} назад`;
 
-  const days = Math.floor(hours / 24);
-  if (days < 30) {
-    const lastDigit = days % 10;
-    const lastTwo = days % 100;
-    let word = 'дней';
-    if (lastTwo >= 11 && lastTwo <= 14) word = 'дней';
-    else if (lastDigit === 1) word = 'день';
-    else if (lastDigit >= 2 && lastDigit <= 4) word = 'дня';
-    return `${days} ${word} назад`;
-  }
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} ${plural(h, ['час', 'часа', 'часов'])} назад`;
 
-  const months = Math.floor(days / 30);
-  if (months < 12) {
-    const lastDigit = months % 10;
-    const lastTwo = months % 100;
-    let word = 'месяцев';
-    if (lastTwo >= 11 && lastTwo <= 14) word = 'месяцев';
-    else if (lastDigit === 1) word = 'месяц';
-    else if (lastDigit >= 2 && lastDigit <= 4) word = 'месяца';
-    return `${months} ${word} назад`;
-  }
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d} ${plural(d, ['день', 'дня', 'дней'])} назад`;
 
-  const years = Math.floor(months / 12);
-  const lastDigit = years % 10;
-  const lastTwo = years % 100;
-  let word = 'лет';
-  if (lastTwo >= 11 && lastTwo <= 14) word = 'лет';
-  else if (lastDigit === 1) word = 'год';
-  else if (lastDigit >= 2 && lastDigit <= 4) word = 'года';
-  return `${years} ${word} назад`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo} ${plural(mo, ['месяц', 'месяца', 'месяцев'])} назад`;
+
+  const y = Math.floor(mo / 12);
+  return `${y} ${plural(y, ['год', 'года', 'лет'])} назад`;
 }

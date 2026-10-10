@@ -1,0 +1,17 @@
+.post-card {
+  width: 420px;
+  max-width: 100%;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 8px;
+}
+
+.post-text {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-primary);
+  padding: 0 0 12px;
+  word-break: break-word;
+}

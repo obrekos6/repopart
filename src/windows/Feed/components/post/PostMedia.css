@@ -1,0 +1,111 @@
+.post-media-wrapper {
+  width: 100%;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.post-media-wrapper > * { border-radius: inherit; }
+
+.post-media-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.post-media-carousel::-webkit-scrollbar { display: none; }
+
+.post-media-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+.post-media-slide img,
+.post-media-slide video,
+.post-media-single img,
+.post-media-single video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.post-media-single {
+  width: 100%;
+  position: relative;
+  border-radius: inherit;
+}
+
+.post-mute {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 50%;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.post-duration {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.post-audio {
+  padding: 16px;
+  background: var(--bg-card);
+}
+
+.post-audio audio { width: 100%; }
+
+.post-file {
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.post-file-icon { font-size: 3rem; margin-bottom: 8px; }
+.post-file-name { font-size: 0.85rem; color: var(--text-secondary); }
+
+.post-media-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0 0;
+}
+
+.post-media-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.post-media-dot.is-active {
+  opacity: 1;
+  background: var(--text-primary);
+}

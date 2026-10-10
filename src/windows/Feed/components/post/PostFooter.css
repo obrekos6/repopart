@@ -1,0 +1,68 @@
+.post-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0 4px;
+}
+
+.post-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: color 0.2s;
+}
+
+.post-action:hover {
+  color: var(--text-primary);
+}
+
+.post-action svg {
+  width: 20px;
+  height: 20px;
+}
+
+.like-btn {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.like-btn.is-liked {
+  color: #ef4444;
+}
+
+.like-btn.is-liked .like-icon {
+  color: #ef4444;
+}
+
+.like-btn.is-bursting .like-icon {
+  animation: likePop 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes likePop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.like-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-views {
+  cursor: default;
+}
+
+.post-download-btn span {
+  font-size: 0.85rem;
+}

@@ -14,10 +14,9 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Автозаполнение email, если сохранён
   useEffect(() => {
-    const savedEmail = localStorage.getItem('svyaz-email');
-    if (savedEmail) setEmail(savedEmail);
+    const saved = localStorage.getItem('svyaz-email');
+    if (saved) setEmail(saved);
   }, []);
 
   const switchMode = (m) => {
@@ -38,64 +37,38 @@ export default function AuthScreen() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(''); setLoading(true);
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
     });
-
-    if (error) {
-      setError(error.message);
-    } else {
+    if (error) setError(error.message);
+    else {
       localStorage.setItem('svyaz-email', email);
       setMode('confirm');
     }
     setLoading(false);
   };
 
+  const props = {
+    email, setEmail, password, setPassword,
+    error, loading, showPassword, setShowPassword,
+  };
+
   return (
     <div className="auth-overlay">
       <div className="auth-logo">
-        <div className="auth-logo-inner">
-          <Logo className="auth-logo-icon" />
-          <span className="auth-logo-text">связь</span>
-        </div>
+        <Logo className="auth-logo-icon" />
+        <span className="auth-logo-text">связь</span>
       </div>
 
       <div className="auth-container">
         {mode === 'login' && (
-          <LoginForm
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            error={error}
-            loading={loading}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            onSubmit={handleLogin}
-            onSwitch={() => switchMode('register')}
-          />
+          <LoginForm {...props} onSubmit={handleLogin} onSwitch={() => switchMode('register')} />
         )}
-
         {mode === 'register' && (
-          <RegisterForm
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            error={error}
-            loading={loading}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            onSubmit={handleRegister}
-            onSwitch={() => switchMode('login')}
-          />
+          <RegisterForm {...props} onSubmit={handleRegister} onSwitch={() => switchMode('login')} />
         )}
-
         {mode === 'confirm' && (
           <ConfirmEmail email={email} onBack={() => switchMode('login')} />
         )}

@@ -1,22 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../../../lib/supabaseClient';
+import './CreateRepoModal.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + ['B', 'KB', 'MB', 'GB'][i];
 };
 
-const getFileIcon = (type) => {
+const getIcon = (type) => {
   if (type.startsWith('image/')) return '🖼️';
   if (type.startsWith('video/')) return '🎬';
   if (type.startsWith('audio/')) return '🎵';
-  if (type.includes('pdf')) return '📕';
-  if (type.includes('zip') || type.includes('rar')) return '📦';
   return '📄';
 };
 
@@ -25,22 +23,20 @@ export default function CreateRepoModal({ onClose, onCreate }) {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [files, setFiles] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
 
-  const isValidFile = (file) => {
-    if (file.size > MAX_FILE_SIZE) {
-      alert(`Файл "${file.name}" слишком большой! Максимум: ${formatSize(MAX_FILE_SIZE)}.`);
-      return false;
-    }
-    return true;
-  };
-
-  const handleFiles = (newFiles) => {
-    const valid = Array.from(newFiles).filter(isValidFile);
+  const addFiles = (newFiles) => {
+    const valid = Array.from(newFiles).filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        alert(`Файл "${f.name}" больше ${formatSize(MAX_FILE_SIZE)}`);
+        return false;
+      }
+      return true;
+    });
     const formatted = valid.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).slice(2, 9),
       file,
       name: file.name,
       size: file.size,
@@ -52,66 +48,49 @@ export default function CreateRepoModal({ onClose, onCreate }) {
 
   const removeFile = (id) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
-  const uploadToStorage = async (fileObj) => {
-    const ext = fileObj.file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+  const upload = async (obj) => {
+    const ext = obj.file.name.split('.').pop();
+    const name = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage
       .from('repopart-files')
-      .upload(fileName, fileObj.file, {
-        cacheControl: '31536000',
-        upsert: false,
-      });
+      .upload(name, obj.file, { cacheControl: '31536000' });
     if (error) throw error;
     const { data: { publicUrl } } = supabase.storage
       .from('repopart-files')
-      .getPublicUrl(fileName);
-    return {
-      id: fileObj.id,
-      name: fileObj.name,
-      size: fileObj.size,
-      type: fileObj.type,
-      url: publicUrl,
-    };
+      .getPublicUrl(name);
+    return { id: obj.id, name: obj.name, size: obj.size, type: obj.type, url: publicUrl };
   };
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setPasswordError('');
-
-    const masterPassword = import.meta.env.VITE_MASTER_PASSWORD;
-    if (password !== masterPassword) {
+    if (password !== import.meta.env.VITE_MASTER_PASSWORD) {
       setPasswordError('Неверный пароль');
       return;
     }
-
-    setIsUploading(true);
+    setUploading(true);
     try {
-      const uploadedFiles = await Promise.all(files.map(uploadToStorage));
+      const uploaded = await Promise.all(files.map(upload));
       const { data: { user } } = await supabase.auth.getUser();
-
       const { data, error } = await supabase
         .from('repositories')
         .insert({
           name: caption,
           description: '',
           password,
-          files: uploadedFiles,
+          files: uploaded,
           user_id: user.id,
           author_email: user.email,
           views: 0,
         })
         .select()
         .single();
-
       if (error) throw error;
-
-      onCreate && onCreate(data);
+      onCreate?.(data);
       onClose();
     } catch (err) {
-      console.error(err);
-      alert('Ошибка при создании: ' + err.message);
+      alert('Ошибка: ' + err.message);
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
@@ -123,11 +102,13 @@ export default function CreateRepoModal({ onClose, onCreate }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={submit} className="modal-form">
           <label className="field">
             <span className="field-label">Подпись</span>
             <input
-              type="text" className="field-input" value={caption}
+              type="text"
+              className="field-input"
+              value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Добавить подпись..."
               autoFocus
@@ -150,26 +131,26 @@ export default function CreateRepoModal({ onClose, onCreate }) {
           <div className="field">
             <span className="field-label">Файлы</span>
             <div
-              className={`modal-drop-zone ${isDragging ? 'is-dragging' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              className={`modal-drop-zone ${dragging ? 'is-dragging' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
               onDrop={(e) => {
                 e.preventDefault();
-                setIsDragging(false);
-                if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+                setDragging(false);
+                if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
               }}
-              onClick={() => fileInputRef.current.click()}
+              onClick={() => inputRef.current.click()}
             >
               <input
-                type="file" multiple ref={fileInputRef}
-                onChange={(e) => handleFiles(e.target.files)}
+                type="file"
+                multiple
+                ref={inputRef}
+                onChange={(e) => addFiles(e.target.files)}
                 style={{ display: 'none' }}
               />
               <div className="drop-zone-icon">📎</div>
-              <div className="drop-zone-text">Перетащите файлы сюда или нажмите</div>
-              <div className="drop-zone-subtext">
-                Максимум {formatSize(MAX_FILE_SIZE)} · Любые форматы
-              </div>
+              <div className="drop-zone-text">Перетащите файлы или нажмите</div>
+              <div className="drop-zone-subtext">Максимум {formatSize(MAX_FILE_SIZE)}</div>
             </div>
 
             {files.length > 0 && (
@@ -182,17 +163,14 @@ export default function CreateRepoModal({ onClose, onCreate }) {
                       ) : f.type.startsWith('video/') ? (
                         <video src={f.url} muted preload="metadata" />
                       ) : (
-                        <span className="modal-file-icon">{getFileIcon(f.type)}</span>
+                        <span className="modal-file-icon">{getIcon(f.type)}</span>
                       )}
                     </div>
                     <div className="modal-file-meta">
-                      <span className="modal-file-name" title={f.name}>{f.name}</span>
+                      <span className="modal-file-name">{f.name}</span>
                       <span className="modal-file-size">{formatSize(f.size)}</span>
                     </div>
-                    <button
-                      type="button" className="modal-file-remove"
-                      onClick={() => removeFile(f.id)}
-                    >✕</button>
+                    <button type="button" className="modal-file-remove" onClick={() => removeFile(f.id)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -200,11 +178,11 @@ export default function CreateRepoModal({ onClose, onCreate }) {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={isUploading}>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={uploading}>
               Отмена
             </button>
-            <button type="submit" className="btn-primary" disabled={isUploading}>
-              {isUploading ? 'Загрузка...' : 'Опубликовать'}
+            <button type="submit" className="btn-primary" disabled={uploading}>
+              {uploading ? 'Загрузка...' : 'Опубликовать'}
             </button>
           </div>
         </form>
