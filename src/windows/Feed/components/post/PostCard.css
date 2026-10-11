@@ -1,10 +1,12 @@
 .post-card {
   width: 420px;
   max-width: 100%;
-  background: var(--bg-primary);
+  background: var(--bg-post);
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
-  padding: 4px 0 8px;
+  padding: 14px 16px 12px;
+  overflow: hidden;
 }
 
 .post-text {
@@ -14,4 +16,11 @@
   color: var(--text-primary);
   padding: 0 0 12px;
   word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  /* caption is the only selectable text in a post */
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }

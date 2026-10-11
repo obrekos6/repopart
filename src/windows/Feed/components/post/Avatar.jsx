@@ -2,7 +2,7 @@ import React, { useId } from 'react';
 import { colorFromString, initialFromString } from '../../../../lib/avatar';
 import './Avatar.css';
 
-export default function Avatar({ url, name, size = 40, className = '' }) {
+export default function Avatar({ url, name, seed, size = 40, className = '' }) {
   const uid = useId().replace(/:/g, '');
   const clipId = `clip-${uid}`;
   const gradId = `grad-${uid}`;
@@ -18,7 +18,10 @@ export default function Avatar({ url, name, size = 40, className = '' }) {
     );
   }
 
-  const color = colorFromString(name);
+  // seed (id пользователя) — стабильный идентификатор. Если его нет — используем name.
+  // Так цвет не меняется при смене ника.
+  const colorSeed = seed || name || '';
+  const color = colorFromString(colorSeed);
   const letter = initialFromString(name);
 
   return (

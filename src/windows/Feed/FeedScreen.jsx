@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Logo from '../../assets/icons/Logo';
 import { LogoutIcon, PlusIcon } from '../../assets/icons/Icons';
+import GlassFilter from '../../components/GlassFilter';
 import SideMenu from './components/layout/SideMenu';
 import CreateRepoModal from './components/modals/CreateRepoModal';
 import ProfileModal from './components/modals/ProfileModal';
@@ -26,43 +27,182 @@ const TABS = [
 function Tabs({ tabs, active, onChange }) {
   const containerRef = useRef(null);
   const [capsule, setCapsule] = useState({ left: 0, width: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [hoveredTab, setHoveredTab] = useState(null);
+
+  const skipClickRef = useRef(false);
+  const stateRef = useRef({
+    startX: 0,
+    startLeft: 0,
+    currentLeft: 0,
+    moved: false,
+    positions: [],
+    capsuleWidth: 0,
+    active: active,
+    onChange: onChange,
+  });
+
+  stateRef.current.active = active;
+  stateRef.current.onChange = onChange;
+  stateRef.current.capsuleWidth = capsule.width;
+
+  const collectPositions = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('.tab')).map((btn) => ({
+      id: btn.dataset.tabId,
+      left: btn.offsetLeft,
+      width: btn.offsetWidth,
+      center: btn.offsetLeft + btn.offsetWidth / 2,
+    }));
+  }, []);
+
+  const snapCapsuleTo = useCallback((positions, tabId) => {
+    const btn = positions.find((p) => p.id === tabId);
+    if (btn) setCapsule({ left: btn.left, width: btn.width });
+  }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const positions = collectPositions();
+    stateRef.current.positions = positions;
+    snapCapsuleTo(positions, active);
+  }, [active, tabs, collectPositions, snapCapsuleTo]);
 
-    const updateCapsule = () => {
-      const buttons = container.querySelectorAll('.tab');
-      const index = tabs.findIndex((t) => t.id === active);
-      const btn = buttons[index];
-      if (btn) {
-        setCapsule({ left: btn.offsetLeft, width: btn.offsetWidth });
+  useEffect(() => {
+    const onResize = () => {
+      const positions = collectPositions();
+      stateRef.current.positions = positions;
+      snapCapsuleTo(positions, stateRef.current.active);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [collectPositions, snapCapsuleTo]);
+
+  const handlePointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    const positions = collectPositions();
+    stateRef.current.positions = positions;
+    stateRef.current.startX = e.clientX;
+    stateRef.current.startLeft = capsule.left;
+    stateRef.current.currentLeft = capsule.left;
+    stateRef.current.moved = false;
+    setDragging(true);
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const onMove = (e) => {
+      const dx = e.clientX - stateRef.current.startX;
+      if (Math.abs(dx) > 5) stateRef.current.moved = true;
+
+      const positions = stateRef.current.positions;
+      if (positions.length === 0) return;
+
+      let newLeft = stateRef.current.startLeft + dx;
+      const minLeft = positions[0].left;
+      const maxLeft = positions[positions.length - 1].left;
+      if (newLeft < minLeft) newLeft = minLeft;
+      if (newLeft > maxLeft) newLeft = maxLeft;
+
+      stateRef.current.currentLeft = newLeft;
+      setCapsule((prev) => ({ ...prev, left: newLeft }));
+
+      const center = newLeft + stateRef.current.capsuleWidth / 2;
+      let nearest = positions[0];
+      let minDist = Math.abs(center - nearest.center);
+      for (const p of positions) {
+        const dist = Math.abs(center - p.center);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = p;
+        }
+      }
+      setHoveredTab(nearest.id);
+    };
+
+    const onUp = () => {
+      setDragging(false);
+
+      const positions = stateRef.current.positions;
+
+      if (!stateRef.current.moved) {
+        setHoveredTab(null);
+        if (positions.length) snapCapsuleTo(positions, stateRef.current.active);
+        return;
+      }
+
+      skipClickRef.current = true;
+      setTimeout(() => { skipClickRef.current = false; }, 80);
+
+      if (positions.length === 0) {
+        setHoveredTab(null);
+        return;
+      }
+
+      const center = stateRef.current.currentLeft + stateRef.current.capsuleWidth / 2;
+      let nearest = positions[0];
+      let minDist = Math.abs(center - nearest.center);
+      for (const p of positions) {
+        const dist = Math.abs(center - p.center);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = p;
+        }
+      }
+
+      setHoveredTab(null);
+      snapCapsuleTo(positions, nearest.id);
+
+      if (nearest.id !== stateRef.current.active) {
+        stateRef.current.onChange(nearest.id);
       }
     };
 
-    updateCapsule();
-    window.addEventListener('resize', updateCapsule);
-    return () => window.removeEventListener('resize', updateCapsule);
-  }, [active, tabs]);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragging, snapCapsuleTo]);
+
+  const handleClick = (tabId) => {
+    if (skipClickRef.current) return;
+    if (dragging) return;
+    onChange(tabId);
+  };
 
   return (
-    <div className="tabs" ref={containerRef}>
+    <div
+      className="tabs"
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+    >
       <div
-        className="tabs-capsule"
+        className={`tabs-capsule ${dragging ? 'is-dragging' : ''}`}
         style={{
-          transform: `translateX(${capsule.left}px)`,
-          width: capsule.width,
+          left: `${capsule.left}px`,
+          width: `${capsule.width}px`,
+          transform: `scale(${dragging ? 1.08 : 1})`,
         }}
       />
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          className={`tab ${active === t.id ? 'is-active' : ''}`}
-          onClick={() => onChange(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
+      {tabs.map((t) => {
+        const isVisualActive = dragging ? hoveredTab === t.id : active === t.id;
+        return (
+          <button
+            key={t.id}
+            data-tab-id={t.id}
+            className={`tab ${isVisualActive ? 'is-active' : ''}`}
+            onClick={() => handleClick(t.id)}
+          >
+            {t.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -81,6 +221,7 @@ export default function FeedScreen() {
   const sentinelRef = useRef(null);
   const trackedIdsRef = useRef(new Set());
   const loadingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
@@ -116,14 +257,25 @@ export default function FeedScreen() {
   }, [currentUser]);
 
   const load = useCallback(async (reset = false) => {
-    if (loadingRef.current) return;
     if (!reset && !hasMore) return;
 
-    loadingRef.current = true;
-    setLoading(true);
+    const reqId = ++requestIdRef.current;
+
+    if (reset) {
+      loadingRef.current = true;
+      setPosts([]);
+      setHasMore(true);
+      setLoading(true);
+    } else {
+      if (loadingRef.current) return;
+      loadingRef.current = true;
+      setLoading(true);
+    }
 
     const offset = reset ? 0 : posts.length;
     const data = await loadPosts(tab, POSTS_PER_PAGE, offset);
+
+    if (reqId !== requestIdRef.current) return;
 
     if (reset) {
       setPosts(data);
@@ -139,6 +291,7 @@ export default function FeedScreen() {
 
   useEffect(() => {
     load(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, currentUser]);
 
   const handleLogoClick = useCallback(async () => {
@@ -152,9 +305,11 @@ export default function FeedScreen() {
     }
 
     setRefreshing(true);
+    const reqId = ++requestIdRef.current;
 
     try {
       const data = await loadPosts(tab, POSTS_PER_PAGE, 0);
+      if (reqId !== requestIdRef.current) return;
       setPosts(data);
       trackedIdsRef.current = new Set();
       setHasMore(data.length === POSTS_PER_PAGE);
@@ -178,7 +333,7 @@ export default function FeedScreen() {
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, load]);
+  }, [hasMore, load, tab]);
 
   useEffect(() => {
     const channel = supabase
@@ -212,6 +367,7 @@ export default function FeedScreen() {
 
   return (
     <>
+      <GlassFilter />
       <div className="app">
         <div className="app-bg" />
 
@@ -231,18 +387,18 @@ export default function FeedScreen() {
           </ul>
         </aside>
 
-        <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+        <button className="menu-btn glass-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
           <div className="menu-btn-stripes">
             <span></span><span></span><span></span>
           </div>
         </button>
 
-        <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
+        <button className="fixed-logo glass-btn" onClick={handleLogoClick} aria-label="Обновить ленту">
           <Logo className="logo-icon" />
           <span className="logo-text">связь</span>
         </button>
 
-        <div className="double-btn">
+        <div className="double-btn glass-btn">
           <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
             <LogoutIcon size={20} />
           </button>
@@ -257,7 +413,6 @@ export default function FeedScreen() {
 
             {refreshing && (
               <div className="refresh-overlay">
-                <div className="refresh-spinner" />
                 <div className="refresh-text">Обновляем рекомендации...</div>
               </div>
             )}

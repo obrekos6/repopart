@@ -6,7 +6,7 @@ import './PostHeader.css';
 
 const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
-export default function PostHeader({ author, displayName, createdAt, authorEmail }) {
+export default function PostHeader({ author, userId, displayName, createdAt, authorEmail }) {
   const isVerified = authorEmail && VERIFIED_EMAILS.includes(authorEmail);
 
   return (
@@ -14,6 +14,7 @@ export default function PostHeader({ author, displayName, createdAt, authorEmail
       <Avatar
         url={author?.avatar_url}
         name={displayName}
+        seed={userId}
         size={40}
       />
       <div className="post-header-info">
@@ -25,9 +26,6 @@ export default function PostHeader({ author, displayName, createdAt, authorEmail
         </div>
         <div className="post-time">{formatTime(createdAt)}</div>
       </div>
-      <button className="post-menu" aria-label="Ещё">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   );
 }

@@ -32,12 +32,15 @@
   --font-logo: 'SF Pro Display', Roboto, sans-serif;
   --font-nickname: 'SF Pro Nicknames', 'SF Pro Display', Roboto, sans-serif;
 
+  --r-lg: 24px;
+
   /* Тёмная тема */
   --bg-primary: rgb(0, 0, 0);
+  --bg-card: rgb(10, 10, 10);
+  --bg-post: rgb(22, 22, 24);
   --text-primary: rgb(245, 245, 245);
   --text-secondary: rgb(107, 106, 107);
   --bg-search: rgb(20, 20, 20);
-  --bg-card: rgb(10, 10, 10);
   --border-color: rgba(255, 255, 255, 0.12);
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   --logo-color: #fff;
@@ -46,10 +49,11 @@
 @media (prefers-color-scheme: light) {
   :root {
     --bg-primary: rgb(255, 255, 255);
+    --bg-card: rgb(255, 255, 255);
+    --bg-post: rgb(241, 241, 246);
     --text-primary: rgb(0, 0, 0);
     --text-secondary: rgb(112, 117, 121);
     --bg-search: rgb(242, 242, 242);
-    --bg-card: rgb(255, 255, 255);
     --border-color: rgba(0, 0, 0, 0.1);
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     --logo-color: #000;

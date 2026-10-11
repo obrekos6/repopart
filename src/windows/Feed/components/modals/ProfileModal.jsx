@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
+import { invalidateProfile } from '../../../../lib/profilesCache';
 import { CameraIcon } from '../../../../assets/icons/Icons';
 import Avatar from '../post/Avatar';
 import './ProfileModal.css';
@@ -52,6 +53,7 @@ export default function ProfileModal({ user, onClose }) {
       if (dbErr) throw dbErr;
 
       setProfile((p) => ({ ...(p || {}), id: user.id, avatar_url: publicUrl }));
+      invalidateProfile(user.id);
     } catch (err) {
       alert('Ошибка: ' + err.message);
     } finally {
@@ -66,6 +68,7 @@ export default function ProfileModal({ user, onClose }) {
       .from('profiles')
       .upsert({ id: user.id, username: username.trim(), updated_at: new Date().toISOString() });
     setProfile((p) => ({ ...(p || {}), id: user.id, username: username.trim() }));
+    invalidateProfile(user.id);
     setSavingName(false);
   };
 
@@ -78,6 +81,7 @@ export default function ProfileModal({ user, onClose }) {
           <Avatar
             url={profile?.avatar_url}
             name={profile?.username || user.email}
+            seed={user.id}
             size={110}
           />
           <button

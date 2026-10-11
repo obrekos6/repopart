@@ -13,7 +13,7 @@
   position: relative;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 24px;
   width: 100%;
   max-width: 400px;
   padding: 32px 24px 24px;
@@ -28,7 +28,7 @@
   right: 12px;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 24px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -46,20 +46,31 @@
   align-self: center;
 }
 
+/* glass accent button (no glow) */
 .profile-avatar-btn {
   position: absolute;
   bottom: -4px;
   right: -4px;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-text);
+  border-radius: 24px;
+  color: #fff;
   border: 3px solid var(--bg-card);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  background: linear-gradient(
+    315deg,
+    rgba(0, 139, 255, 0.95) 0%,
+    rgba(0, 120, 230, 0.78) 100%
+  );
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
 .profile-avatar-btn:disabled {
@@ -90,31 +101,42 @@
   color: var(--text-primary);
   background: var(--bg-search);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 24px;
   padding: 10px 14px;
   outline: none;
-  transition: border-color 0.2s ease;
 }
 
 .profile-input:focus {
   border-color: var(--accent);
 }
 
+/* glass accent button (no glow) */
 .profile-save {
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0 16px;
-  border-radius: 10px;
+  border-radius: 24px;
   border: none;
-  background: var(--accent);
-  color: var(--accent-text);
+  color: #fff;
   cursor: pointer;
   white-space: nowrap;
+
+  background: linear-gradient(
+    315deg,
+    rgba(0, 139, 255, 0.95) 0%,
+    rgba(0, 120, 230, 0.78) 50%,
+    rgba(0, 139, 255, 0.85) 100%
+  );
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset -1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
-.profile-save:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
+.profile-save:hover:not(:disabled) { filter: brightness(1.08); }
 
 .profile-save:disabled {
   opacity: 0.4;
@@ -126,7 +148,7 @@
   color: var(--text-secondary);
   background: var(--bg-search);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 24px;
   padding: 10px 14px;
   word-break: break-all;
 }

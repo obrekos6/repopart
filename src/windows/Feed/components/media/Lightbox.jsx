@@ -5,7 +5,7 @@ const imageUrl = (url) => {
   if (!url) return url;
   if (url.match(/\.(svg|gif)(\?|$)/i)) return url;
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}width=1400&quality=85`;
+  return `${url}${sep}width=1200&quality=60&format=webp`;
 };
 
 export default function Lightbox({ file, onClose }) {

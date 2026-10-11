@@ -15,13 +15,21 @@ export default function PostFooter({ views, likes, isLiked, burst, onLike, files
     e.stopPropagation();
     const f = files[slide] || files[0];
     if (!f) return;
+
+    /* keep original filename + extension */
+    const filename = f.name || 'download';
+
     try {
       const res = await fetch(f.url);
       const blob = await res.blob();
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = f.name || 'download';
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
     } catch {
       window.open(f.url, '_blank');
     }

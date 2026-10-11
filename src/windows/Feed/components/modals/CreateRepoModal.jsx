@@ -18,65 +18,134 @@ const getIcon = (type) => {
   return '📄';
 };
 
+/* compress an image via canvas, keeps original filename/extension */
+const compressImage = (file, maxW = 1600, quality = 0.75) => {
+  if (!file.type.startsWith('image/')) return Promise.resolve(file);
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return Promise.resolve(file);
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+
+      if (width > maxW) {
+        height = Math.round((height * maxW) / width);
+        width = maxW;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size >= file.size) {
+            resolve(file);
+            return;
+          }
+          const out = new File([blob], file.name, { type: mime });
+          resolve(out);
+        },
+        mime,
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+};
+
 export default function CreateRepoModal({ onClose, onCreate }) {
   const [caption, setCaption] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
-  const addFiles = (newFiles) => {
-    const valid = Array.from(newFiles).filter((f) => {
+  const addFiles = async (newFiles) => {
+    const incoming = Array.from(newFiles).filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
         alert(`Файл "${f.name}" больше ${formatSize(MAX_FILE_SIZE)}`);
         return false;
       }
       return true;
     });
-    const formatted = valid.map((file) => ({
-      id: Math.random().toString(36).slice(2, 9),
-      file,
-      name: file.name,
-      size: file.size,
-      type: file.type || 'application/octet-stream',
-      url: URL.createObjectURL(file),
-    }));
-    setFiles((prev) => [...prev, ...formatted]);
+
+    const entries = [];
+    for (const file of incoming) {
+      const compressed = await compressImage(file);
+      entries.push({
+        id: Math.random().toString(36).slice(2, 9),
+        file: compressed,
+        name: file.name,
+        size: compressed.size,
+        originalSize: file.size,
+        type: file.type || 'application/octet-stream',
+        url: URL.createObjectURL(compressed),
+      });
+    }
+
+    setFiles((prev) => [...prev, ...entries]);
   };
 
   const removeFile = (id) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
   const upload = async (obj) => {
-    const ext = obj.file.name.split('.').pop();
-    const name = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const ext = obj.file.name.split('.').pop() || 'bin';
+    const storageName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
     const { error } = await supabase.storage
       .from('repopart-files')
-      .upload(name, obj.file, { cacheControl: '31536000' });
+      .upload(storageName, obj.file, {
+        cacheControl: '31536000',
+        contentType: obj.type,
+      });
     if (error) throw error;
+
     const { data: { publicUrl } } = supabase.storage
       .from('repopart-files')
-      .getPublicUrl(name);
-    return { id: obj.id, name: obj.name, size: obj.size, type: obj.type, url: publicUrl };
+      .getPublicUrl(storageName);
+
+    return {
+      id: obj.id,
+      name: obj.name,
+      size: obj.size,
+      type: obj.type,
+      url: publicUrl,
+    };
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (password !== import.meta.env.VITE_MASTER_PASSWORD) {
-      setPasswordError('Неверный пароль');
-      return;
-    }
+
+    /* collapse 3+ newlines to 2, trim */
+    const cleanCaption = caption.replace(/\n{3,}/g, '\n\n').trim();
+
     setUploading(true);
+
     try {
       const uploaded = await Promise.all(files.map(upload));
+
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('repositories')
         .insert({
-          name: caption,
+          name: cleanCaption,
           description: '',
-          password,
           files: uploaded,
           user_id: user.id,
           author_email: user.email,
@@ -84,12 +153,13 @@ export default function CreateRepoModal({ onClose, onCreate }) {
         })
         .select()
         .single();
+
       if (error) throw error;
+
       onCreate?.(data);
       onClose();
     } catch (err) {
       alert('Ошибка: ' + err.message);
-    } finally {
       setUploading(false);
     }
   };
@@ -104,28 +174,18 @@ export default function CreateRepoModal({ onClose, onCreate }) {
 
         <form onSubmit={submit} className="modal-form">
           <label className="field">
-            <span className="field-label">Подпись</span>
-            <input
-              type="text"
-              className="field-input"
+            <span className="field-label">
+              Подпись <span className="field-counter">{caption.length}/500</span>
+            </span>
+            <textarea
+              className="field-input field-textarea"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Добавить подпись..."
+              maxLength={500}
+              rows={3}
               autoFocus
             />
-          </label>
-
-          <label className="field">
-            <span className="field-label">Пароль<span className="required">*</span></span>
-            <input
-              type="password"
-              className={`field-input ${passwordError ? 'field-input-error' : ''}`}
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
-              placeholder="Пароль для создания"
-              required
-            />
-            {passwordError && <span className="field-error">{passwordError}</span>}
           </label>
 
           <div className="field">
@@ -168,7 +228,12 @@ export default function CreateRepoModal({ onClose, onCreate }) {
                     </div>
                     <div className="modal-file-meta">
                       <span className="modal-file-name">{f.name}</span>
-                      <span className="modal-file-size">{formatSize(f.size)}</span>
+                      <span className="modal-file-size">
+                        {formatSize(f.size)}
+                        {f.originalSize && f.originalSize !== f.size && (
+                          <span className="modal-file-saved"> ← {formatSize(f.originalSize)}</span>
+                        )}
+                      </span>
                     </div>
                     <button type="button" className="modal-file-remove" onClick={() => removeFile(f.id)}>✕</button>
                   </div>
@@ -178,7 +243,12 @@ export default function CreateRepoModal({ onClose, onCreate }) {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={uploading}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={uploading}
+            >
               Отмена
             </button>
             <button type="submit" className="btn-primary" disabled={uploading}>
