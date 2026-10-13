@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { HeartIcon, HeartFilledIcon, DownloadIcon, EyeIcon } from '../../../../assets/icons/Icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../../../../lib/supabaseClient';
+import { HeartIcon, HeartFilledIcon, DownloadIcon, EyeIcon, CommentIcon } from '../../../../assets/icons/Icons';
 import './PostFooter.css';
 
 const formatNumber = (n) => {
@@ -8,17 +9,44 @@ const formatNumber = (n) => {
   return n;
 };
 
-export default function PostFooter({ views, likes, isLiked, burst, onLike, files = [] }) {
+export default function PostFooter({ views, likes, isLiked, burst, onLike, files = [], postId, onOpenComments }) {
   const [slide] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
+  /* уникальный id инстанса — чтобы каналы не конфликтовали */
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2, 9));
+
+  useEffect(() => {
+    if (!postId) return;
+    supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('repository_id', postId)
+      .then(({ count }) => setCommentCount(count || 0));
+  }, [postId]);
+
+  useEffect(() => {
+    if (!postId) return;
+    const uid = instanceIdRef.current;
+    const ch = supabase
+      .channel(`comment-count-${postId}-${uid}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'comments', filter: `repository_id=eq.${postId}` },
+        async () => {
+          const { count } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('repository_id', postId);
+          setCommentCount(count || 0);
+        })
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [postId]);
 
   const handleDownload = async (e) => {
     e.stopPropagation();
     const f = files[slide] || files[0];
     if (!f) return;
-
-    /* keep original filename + extension */
     const filename = f.name || 'download';
-
     try {
       const res = await fetch(f.url);
       const blob = await res.blob();
@@ -35,20 +63,27 @@ export default function PostFooter({ views, likes, isLiked, burst, onLike, files
     }
   };
 
+  const handleComments = (e) => {
+    e.stopPropagation();
+    onOpenComments?.();
+  };
+
   return (
     <div className="post-footer">
       <button
         className={`post-action like-btn ${isLiked ? 'is-liked' : ''} ${burst ? 'is-bursting' : ''}`}
-        onClick={onLike}
+        onClick={(e) => { e.stopPropagation(); onLike?.(); }}
         aria-label="Нравится"
       >
         <div className="like-icon-wrapper">
-          {isLiked
-            ? <HeartFilledIcon size={20} className="like-icon" />
-            : <HeartIcon size={20} className="like-icon" />
-          }
+          {isLiked ? <HeartFilledIcon size={20} className="like-icon" /> : <HeartIcon size={20} className="like-icon" />}
         </div>
         <span>{formatNumber(likes)}</span>
+      </button>
+
+      <button className="post-action comment-btn" onClick={handleComments} aria-label="Комментарии">
+        <CommentIcon size={20} />
+        <span>{formatNumber(commentCount)}</span>
       </button>
 
       <div className="post-action post-views">

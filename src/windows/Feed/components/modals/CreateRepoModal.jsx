@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
+import { useBackButton } from '../../../../lib/useBackButton';
 import './CreateRepoModal.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -76,6 +77,9 @@ export default function CreateRepoModal({ onClose, onCreate }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
+  /* android back — block during upload */
+  useBackButton(onClose, !uploading);
+
   const addFiles = async (newFiles) => {
     const incoming = Array.from(newFiles).filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
@@ -132,7 +136,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
   const submit = async (e) => {
     e.preventDefault();
 
-    /* collapse 3+ newlines to 2, trim */
     const cleanCaption = caption.replace(/\n{3,}/g, '\n\n').trim();
 
     setUploading(true);

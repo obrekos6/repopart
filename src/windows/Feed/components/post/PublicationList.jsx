@@ -1,7 +1,7 @@
 import React from 'react';
 import PostCard from './PostCard';
 
-export default function PublicationList({ publications, currentUser }) {
+export default function PublicationList({ publications, currentUser, onOpenPost }) {
   if (publications.length === 0) {
     return (
       <div className="empty-state">
@@ -15,7 +15,12 @@ export default function PublicationList({ publications, currentUser }) {
   return (
     <div className="publication-list">
       {publications.map((post) => (
-        <PostCard key={post.id} post={post} currentUser={currentUser} />
+        <PostCard
+          key={post.id}
+          post={post}
+          currentUser={currentUser}
+          onOpen={() => onOpenPost?.(post)}
+        />
       ))}
     </div>
   );

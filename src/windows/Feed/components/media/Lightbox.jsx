@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useBackButton } from '../../../../lib/useBackButton';
 import './Lightbox.css';
 
 const imageUrl = (url) => {
@@ -10,24 +11,30 @@ const imageUrl = (url) => {
 
 export default function Lightbox({ file, onClose }) {
   const [visible, setVisible] = useState(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const close = () => {
+    setVisible(false);
+    setTimeout(() => onCloseRef.current?.(), 250);
+  };
+
+  /* android back button closes */
+  useBackButton(close, true);
 
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const onKey = (e) => e.key === 'Escape' && close();
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const close = () => {
-    setVisible(false);
-    setTimeout(onClose, 250);
-  };
 
   const isImage = file.type?.startsWith('image/');
   const isVideo = file.type?.startsWith('video/');
@@ -35,6 +42,17 @@ export default function Lightbox({ file, onClose }) {
 
   return (
     <div className={`lightbox ${visible ? 'is-visible' : ''}`} onClick={close}>
+      <button
+        className="lightbox-close"
+        onClick={(e) => { e.stopPropagation(); close(); }}
+        aria-label="Закрыть"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
       <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
         {isImage && <img src={imageUrl(file.url)} alt={file.name} className="lightbox-media" />}
         {isVideo && <video src={file.url} className="lightbox-media" controls autoPlay loop playsInline />}

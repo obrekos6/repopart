@@ -4,6 +4,4 @@ import App from './App.jsx';
 import './styles/theme.css';
 import './styles/global.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <App />
-);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
 import { invalidateProfile } from '../../../../lib/profilesCache';
+import { useBackButton } from '../../../../lib/useBackButton';
 import { CameraIcon } from '../../../../assets/icons/Icons';
 import Avatar from '../post/Avatar';
 import './ProfileModal.css';
@@ -11,6 +12,9 @@ export default function ProfileModal({ user, onClose }) {
   const [username, setUsername] = useState('');
   const [savingName, setSavingName] = useState(false);
   const fileRef = useRef(null);
+
+  /* android back — block during upload */
+  useBackButton(onClose, !uploading);
 
   useEffect(() => {
     if (!user) return;

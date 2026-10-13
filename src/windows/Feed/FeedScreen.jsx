@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Logo from '../../assets/icons/Logo';
 import { LogoutIcon, PlusIcon } from '../../assets/icons/Icons';
-import GlassFilter from '../../components/GlassFilter';
 import SideMenu from './components/layout/SideMenu';
 import CreateRepoModal from './components/modals/CreateRepoModal';
 import ProfileModal from './components/modals/ProfileModal';
 import PublicationList from './components/post/PublicationList';
+import PostDetailScreen from '../Post/PostDetailScreen';
 import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
@@ -217,6 +217,7 @@ export default function FeedScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [openPost, setOpenPost] = useState(null);
 
   const sentinelRef = useRef(null);
   const trackedIdsRef = useRef(new Set());
@@ -314,7 +315,7 @@ export default function FeedScreen() {
       trackedIdsRef.current = new Set();
       setHasMore(data.length === POSTS_PER_PAGE);
     } catch {
-      // тихо игнорируем
+      // ignore
     }
 
     await new Promise((r) => setTimeout(r, 600));
@@ -365,9 +366,16 @@ export default function FeedScreen() {
     setMenuOpen(false);
   };
 
+  const handleOpenPost = (post) => {
+    setOpenPost(post);
+  };
+
+  const handleClosePost = () => {
+    setOpenPost(null);
+  };
+
   return (
     <>
-      <GlassFilter />
       <div className="app">
         <div className="app-bg" />
 
@@ -387,18 +395,18 @@ export default function FeedScreen() {
           </ul>
         </aside>
 
-        <button className="menu-btn glass-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+        <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
           <div className="menu-btn-stripes">
             <span></span><span></span><span></span>
           </div>
         </button>
 
-        <button className="fixed-logo glass-btn" onClick={handleLogoClick} aria-label="Обновить ленту">
+        <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
           <Logo className="logo-icon" />
           <span className="logo-text">связь</span>
         </button>
 
-        <div className="double-btn glass-btn">
+        <div className="double-btn">
           <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
             <LogoutIcon size={20} />
           </button>
@@ -421,7 +429,11 @@ export default function FeedScreen() {
               <div className="loading-feed">Загрузка...</div>
             ) : (
               <>
-                <PublicationList publications={posts} currentUser={currentUser} />
+                <PublicationList
+                  publications={posts}
+                  currentUser={currentUser}
+                  onOpenPost={handleOpenPost}
+                />
                 {hasMore && <div ref={sentinelRef} className="load-more-sentinel" />}
               </>
             )}
@@ -440,6 +452,13 @@ export default function FeedScreen() {
       )}
       {profileOpen && currentUser && (
         <ProfileModal user={currentUser} onClose={() => setProfileOpen(false)} />
+      )}
+      {openPost && currentUser && (
+        <PostDetailScreen
+          post={openPost}
+          currentUser={currentUser}
+          onClose={handleClosePost}
+        />
       )}
     </>
   );

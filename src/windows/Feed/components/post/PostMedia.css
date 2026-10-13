@@ -2,12 +2,25 @@
   width: 100%;
   border-radius: 24px;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: var(--bg-post);
   position: relative;
 }
 
 .post-media-wrapper > * { border-radius: inherit; }
 
+/* single image or slide */
+.post-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  background: var(--bg-post);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* carousel */
 .post-media-carousel {
   display: flex;
   overflow-x: auto;
@@ -21,13 +34,9 @@
 
 .post-media-carousel::-webkit-scrollbar { display: none; }
 
-.post-media-carousel.is-dragging,
-.post-media-carousel.is-animating {
-  scroll-snap-type: none;
-}
-
 .post-media-carousel.is-dragging {
   cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .post-media-slide {
@@ -35,111 +44,10 @@
   scroll-snap-align: start;
 }
 
-.post-media-slide video,
-.post-media-single video {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
 .post-media-single {
   width: 100%;
   position: relative;
   border-radius: inherit;
-}
-
-/* image lazy load */
-.post-image-wrap {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  background: #000;
-  border-radius: inherit;
-  cursor: pointer;
-}
-
-.post-image-blur,
-.post-image-real {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
-.post-image-blur {
-  filter: blur(20px);
-}
-
-.post-image-blur.is-hidden {
-  opacity: 0;
-}
-
-.post-image-real {
-  opacity: 0;
-}
-
-.post-image-real.is-loaded {
-  opacity: 1;
-}
-
-/* overlay */
-.post-image-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  opacity: 1;
-  pointer-events: none;
-}
-
-.post-image-overlay.is-done {
-  opacity: 0;
-}
-
-.post-image-overlay > * {
-  pointer-events: auto;
-}
-
-.post-image-loader {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.post-image-progress {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.post-image-btn {
-  position: relative;
-  z-index: 1;
-  width: 40px;
-  height: 40px;
-  border-radius: 24px;
-  border: none;
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-family: var(--font-main);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* video overlays */
@@ -178,6 +86,7 @@
   z-index: 2;
 }
 
+/* audio */
 .post-audio {
   padding: 16px;
   background: var(--bg-card);
@@ -185,6 +94,7 @@
 
 .post-audio audio { width: 100%; }
 
+/* generic file */
 .post-file {
   padding: 40px 20px;
   text-align: center;
@@ -194,7 +104,7 @@
 .post-file-icon { font-size: 3rem; margin-bottom: 8px; }
 .post-file-name { font-size: 0.85rem; color: var(--text-secondary); }
 
-/* dots slider — glass pill */
+/* dots slider */
 .post-media-dots {
   display: flex;
   justify-content: center;
@@ -205,7 +115,6 @@
   padding: 4px 8px;
   border-radius: 24px;
 
-  /* glass background */
   background: linear-gradient(
     315deg,
     rgba(255, 255, 255, 0.14) 0%,
@@ -215,7 +124,6 @@
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
 
-  /* thin light edges: top/bottom brighter, sides almost invisible */
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.28),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../../lib/supabaseClient';
 import { getProfile } from '../../../../lib/profilesCache';
@@ -9,7 +9,7 @@ import PostContextMenu from './PostContextMenu';
 import Lightbox from '../media/Lightbox';
 import './PostCard.css';
 
-export default function PostCard({ post, currentUser }) {
+export default function PostCard({ post, currentUser, onOpen }) {
   const [views, setViews] = useState(post.views || 0);
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -18,6 +18,7 @@ export default function PostCard({ post, currentUser }) {
   const [author, setAuthor] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const uid = useId().replace(/:/g, '');
   const pendingLikeRef = useRef(false);
   const lastLocalRef = useRef(0);
   const mountedRef = useRef(true);
@@ -25,7 +26,6 @@ export default function PostCard({ post, currentUser }) {
 
   const isAuthor = !!(currentUser && post.user_id === currentUser.id);
   const hasCaption = !!(post.name && post.name.trim());
-  const menuAvailable = isAuthor || hasCaption;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -66,7 +66,7 @@ export default function PostCard({ post, currentUser }) {
 
   useEffect(() => {
     const ch = supabase
-      .channel(`post-${post.id}`)
+      .channel(`post-${post.id}-${uid}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'reactions', filter: `repository_id=eq.${post.id}` },
         async () => {
@@ -83,7 +83,7 @@ export default function PostCard({ post, currentUser }) {
         (p) => { if (mountedRef.current) setViews(p.new.views || 0); })
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [post.id, currentUser]);
+  }, [post.id, currentUser, uid]);
 
   const handleLike = async () => {
     if (!currentUser || pendingLikeRef.current) return;
@@ -121,57 +121,19 @@ export default function PostCard({ post, currentUser }) {
     }
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(post.name || '');
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = post.name || '';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
+  /* open comments sheet */
+  const handleOpenComments = () => {
+    onOpen?.(post);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Удалить пост? Это действие необратимо.')) return;
-
-    try {
-      const marker = '/repopart-files/';
-      const paths = (post.files || [])
-        .map((f) => {
-          const idx = (f.url || '').indexOf(marker);
-          return idx >= 0 ? f.url.slice(idx + marker.length) : null;
-        })
-        .filter(Boolean);
-
-      if (paths.length) {
-        await supabase.storage.from('repopart-files').remove(paths);
-      }
-
-      const { error } = await supabase
-        .from('repositories')
-        .delete()
-        .eq('id', post.id);
-
-      if (error) throw error;
-    } catch (e) {
-      alert('Ошибка удаления: ' + e.message);
-    }
-  };
-
-  /* context menu: right-click on desktop, prevent native menu */
+  /* context menu: right-click / long-press */
   const handleContextMenu = (e) => {
-    if (!menuAvailable) return;
     e.preventDefault();
     setMenuOpen(true);
   };
 
-  /* long-press on touch: open menu after 500ms if finger didn't move */
   const handlePointerDown = (e) => {
     if (e.pointerType === 'mouse') return;
-    if (!menuAvailable) return;
     longPressRef.current.startX = e.clientX;
     longPressRef.current.startY = e.clientY;
     longPressRef.current.timer = setTimeout(() => {
@@ -194,6 +156,69 @@ export default function PostCard({ post, currentUser }) {
     if (s.timer) {
       clearTimeout(s.timer);
       s.timer = null;
+    }
+  };
+
+  /* share / copy / delete for context menu */
+  const postUrl = `${window.location.origin}/post/${post.id}`;
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.name || 'Пост в «связь»',
+          text: post.name || '',
+          url: postUrl,
+        });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(postUrl);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = postUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(post.name || '');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = post.name || '';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Удалить пост? Это действие необратимо.')) return;
+    try {
+      const marker = '/repopart-files/';
+      const paths = (post.files || [])
+        .map((f) => {
+          const idx = (f.url || '').indexOf(marker);
+          return idx >= 0 ? f.url.slice(idx + marker.length) : null;
+        })
+        .filter(Boolean);
+
+      if (paths.length) {
+        await supabase.storage.from('repopart-files').remove(paths);
+      }
+
+      const { error } = await supabase.from('repositories').delete().eq('id', post.id);
+      if (error) throw error;
+    } catch (e) {
+      alert('Ошибка удаления: ' + e.message);
     }
   };
 
@@ -235,12 +260,15 @@ export default function PostCard({ post, currentUser }) {
           burst={burst}
           onLike={handleLike}
           files={post.files}
+          postId={post.id}
+          onOpenComments={handleOpenComments}
         />
       </div>
 
       <PostContextMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
+        onShare={handleShare}
         onCopy={handleCopy}
         onDelete={handleDelete}
         isAuthor={isAuthor}

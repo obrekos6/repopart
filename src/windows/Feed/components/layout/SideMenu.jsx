@@ -1,7 +1,11 @@
 import React, { useEffect } from 'react';
+import { useBackButton } from '../../../../lib/useBackButton';
 import './SideMenu.css';
 
 export default function SideMenu({ open, onClose, items = [], onItemClick }) {
+  /* android back button closes menu */
+  useBackButton(onClose, open);
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     if (open) window.addEventListener('keydown', onKey);
