@@ -88,11 +88,9 @@
 
 /* audio */
 .post-audio {
-  padding: 16px;
-  background: var(--bg-card);
+  padding: 4px 0;
+  background: transparent;
 }
-
-.post-audio audio { width: 100%; }
 
 /* generic file */
 .post-file {

@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import AudioPlayer from './AudioPlayer';
 import './PostMedia.css';
 
 const formatDuration = (s) => {
@@ -8,7 +9,7 @@ const formatDuration = (s) => {
   return `${m}:${sec}`;
 };
 
-// one url per image — browser caches it once, no duplicate thumbnails
+/* single url per image — browser caches it once */
 const imageUrl = (url) => {
   if (!url) return url;
   if (url.match(/\.(svg|gif)(\?|$)/i)) return url;
@@ -67,7 +68,7 @@ function MediaItem({ file, postName, onPreview }) {
   if (file.type.startsWith('audio/')) {
     return (
       <div className="post-audio">
-        <audio src={file.url} controls preload="none" />
+        <AudioPlayer src={file.url} name={file.name} />
       </div>
     );
   }
