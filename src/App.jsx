@@ -7,13 +7,6 @@ import FeedScreen from './windows/Feed/FeedScreen';
 import './styles/theme.css';
 import './styles/global.css';
 
-/* GH Pages 404 redirect trick: restore path after index loaded */
-const savedRedirect = sessionStorage.getItem('spa-redirect');
-if (savedRedirect) {
-  sessionStorage.removeItem('spa-redirect');
-  window.history.replaceState(null, '', savedRedirect);
-}
-
 function ProtectedFeed({ user, loading }) {
   if (loading) return <div className="loading-screen">Загрузка...</div>;
   if (!user) return <Navigate to="/auth" replace />;
