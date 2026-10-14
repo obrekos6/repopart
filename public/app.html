@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>связь — социальная сеть</title>
+  <meta name="description" content="связь — социальная сеть для обмена публикациями, медиафайлами и общения.">
+  <meta property="og:site_name" content="связь">
+  <meta property="og:title" content="связь">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #f5f5f5; margin: 0; padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin-top: 32px; margin-bottom: 8px; }
+    p, li { font-size: 0.95rem; color: #a0a0a0; }
+    a { color: #008bff; }
+    .btn { display: inline-block; background: #008bff; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 24px; font-weight: 600; margin-top: 16px; }
+    .links { margin-top: 40px; padding-top: 20px; border-top: 1px solid #222; }
+    .links a { margin-right: 16px; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>связь</h1>
+    <p><strong>связь</strong> — это социальная сеть для обмена публикациями, медиафайлами и общения. Пользователи могут публиковать фотографии, видео и музыку, комментировать записи друг друга, ставить лайки и находить новых людей по интересам.</p>
+
+    <h2>Назначение приложения</h2>
+    <p>Приложение предназначено для создания и просмотра пользовательского контента: текстовых записей, изображений, видео и аудио. Основные функции:</p>
+    <ul>
+      <li>Публикация постов с медиафайлами (до 10 МБ каждый).</li>
+      <li>Лента публикаций с фильтрами «Для вас», «Свежее», «Топ».</li>
+      <li>Комментарии к публикациям.</li>
+      <li>Реакции (лайки) на публикации.</li>
+      <li>Профиль пользователя с аватаром, именем и юзернеймом.</li>
+      <li>Аутентификация через Google OAuth.</li>
+    </ul>
+
+    <h2>Использование Google API</h2>
+    <p>Приложение использует Google OAuth 2.0 исключительно для аутентификации пользователей. При входе через Google мы получаем:</p>
+    <ul>
+      <li><strong>Email</strong> — для идентификации аккаунта.</li>
+      <li><strong>Имя и аватар профиля</strong> — для отображения в интерфейсе.</li>
+    </ul>
+    <p>Мы не запрашиваем доступ к Gmail, Google Drive, Google Calendar или другим сервисам Google.</p>
+    <p><strong>Наше приложение не использует Google API для создания или распространения несогласованных интимных изображений (NCII), в том числе сгенерированных искусственным интеллектом (дипфейков).</strong></p>
+
+    <h2>Политика конфиденциальности</h2>
+    <p>Подробная информация о том, какие данные мы собираем и как их используем, доступна в нашей <a href="/privacy.html">Политике конфиденциальности</a>.</p>
+
+    <a href="/" class="btn">Войти</a>
+
+    <div class="links">
+      <a href="/privacy.html">Политика конфиденциальности</a>
+      <a href="/terms.html">Условия использования</a>
+    </div>
+  </div>
+</body>
+</html>
