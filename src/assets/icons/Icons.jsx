@@ -1,10 +1,19 @@
 import React from 'react';
 
-/* eye — views */
+/* eye — views counter / show password */
 export const EyeIcon = ({ className, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-    <circle cx="12" cy="12" r="3" />
+  <svg width={size} height={size} viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2.5 13s3.5-7.5 10.5-7.5S23.5 13 23.5 13s-3.5 7.5-10.5 7.5S2.5 13 2.5 13Z" />
+    <circle cx="13" cy="13" r="3.5" />
+  </svg>
+);
+
+/* eye-off — password hidden (stroke, same weight as EyeIcon) */
+export const EyeOffIcon = ({ className, size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2.5 13s3.5-7.5 10.5-7.5S23.5 13 23.5 13s-3.5 7.5-10.5 7.5S2.5 13 2.5 13Z" />
+    <circle cx="13" cy="13" r="3.5" />
+    <line x1="4" y1="4" x2="22" y2="22" />
   </svg>
 );
 
@@ -48,6 +57,21 @@ export const HeartFilledIcon = ({ className, size = 20 }) => (
   </svg>
 );
 
+/* comment bubble */
+export const CommentIcon = ({ className, size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+  </svg>
+);
+
+/* back arrow */
+export const BackIcon = ({ className, size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
 /* user */
 export const UserIcon = ({ className, size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -73,39 +97,6 @@ export const VerifiedIcon = ({ className, size = 16 }) => (
       d="M15.2598 3.52099L16.9178 5.1789C17.2513 5.51234 17.7005 5.70221 18.1729 5.70221H20.5211C21.4474 5.70221 22.2069 6.40612 22.2903 7.30918L22.2996 7.48052V9.82846C22.2996 10.2962 22.4848 10.75 22.8183 11.0835L24.481 12.7414C25.1294 13.3944 25.1711 14.4224 24.6014 15.1217L24.481 15.256L22.8183 16.9186C22.4848 17.252 22.2996 17.7012 22.2996 18.1736V20.5215C22.2996 21.4477 21.5956 22.2072 20.6925 22.2906L20.5211 22.2998H18.1729C17.7005 22.2998 17.2513 22.4851 16.9178 22.8185L15.2551 24.481C14.6067 25.1294 13.5785 25.1711 12.8792 24.6014L12.7402 24.481L11.0822 22.8185C10.7487 22.4851 10.2948 22.2998 9.82705 22.2998H7.47891C6.55261 22.2998 5.79305 21.5959 5.70969 20.6929L5.70043 20.5215V18.1736C5.70043 17.7012 5.51054 17.252 5.17707 16.9186L3.51901 15.2607C2.8706 14.6077 2.82892 13.575 3.39859 12.8803L3.51901 12.7414L5.17707 11.0835C5.51054 10.75 5.70043 10.3008 5.70043 9.82846V7.48052C5.70043 6.49874 6.49704 5.70221 7.47891 5.70221H9.82705C10.2995 5.70221 10.7487 5.51234 11.0822 5.1789L12.7402 3.52099C13.435 2.82634 14.565 2.82634 15.2598 3.52099ZM18.1729 10.8612C17.7839 10.5509 17.2281 10.5833 16.8808 10.9167L16.7881 11.014L12.731 16.085L11.1378 14.4919L11.0359 14.4039C10.6515 14.1075 10.1003 14.1399 9.74832 14.4919C9.39633 14.8439 9.36391 15.395 9.66032 15.7793L9.74832 15.8812L12.1196 18.2523L12.2169 18.3403C12.6013 18.632 13.1432 18.6043 13.4952 18.2708L13.5832 18.1736L18.3258 12.2459L18.3999 12.1347C18.65 11.7179 18.562 11.1715 18.1729 10.8612Z"
       fill="currentColor"
     />
-  </svg>
-);
-
-/* comment bubble */
-export const CommentIcon = ({ className, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path
-      d="M14 3C19.9959 3 25 7.4295 25 13.0567C25 18.6839 19.9959 23.1134 14 23.1134C13.1817 23.1134 12.3832 23.0243 11.6145 22.8709C11.56 22.9204 11.4806 22.9847 11.3765 23.0837C11.0095 23.4202 10.459 23.9003 9.60595 24.3804C8.92155 24.7615 8.14788 24.9198 7.53787 24.9743C7.23039 25.004 6.94274 25.004 6.70469 24.9941C6.59062 24.9842 6.47656 24.9743 6.37241 24.9594C6.2881 24.9446 6.15419 24.9198 6.02525 24.8703C5.88638 24.811 5.64337 24.6773 5.49955 24.3903C5.34581 24.0884 5.3954 23.7964 5.45987 23.6232C5.51443 23.4648 5.6037 23.3361 5.65825 23.2569C5.72272 23.1728 5.79215 23.0936 5.85663 23.0194C6.1294 22.7224 6.43192 22.4205 6.71461 21.9899C6.93282 21.6583 6.99729 21.2921 6.98242 20.9803C6.9725 20.8269 6.9477 20.7081 6.9229 20.6388C6.91794 20.6339 6.91794 20.6339 6.91794 20.6339C4.47295 18.8076 3 16.2143 3 13.0567C3 7.4295 8.00406 3 14 3ZM14 4.68271C8.77773 4.68271 4.6862 8.50347 4.6862 13.0567C4.6862 15.66 5.89134 17.798 8.01398 19.3471C8.2917 19.55 8.43553 19.8618 8.50992 20.0697C8.59919 20.3171 8.65374 20.5992 8.66862 20.9011C8.69838 21.495 8.56943 22.2324 8.12804 22.9105C8.05861 23.0144 7.98918 23.1183 7.91479 23.2124C8.22227 23.148 8.5248 23.0491 8.77773 22.9105C9.47205 22.5195 9.91344 22.1335 10.2358 21.8415C10.3796 21.7128 10.5582 21.5346 10.7169 21.4208C10.826 21.3366 11.1235 21.1238 11.5203 21.1436L11.6939 21.1684L12.2543 21.2822C12.8197 21.3762 13.3999 21.4257 14 21.4257C19.2223 21.4257 23.3138 17.605 23.3138 13.0567C23.3138 8.50347 19.2173 4.68271 14 4.68271Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-/* back arrow */
-export const BackIcon = ({ className, size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
-  </svg>
-);
-
-/* send — paper plane */
-export const SendIcon = ({ className, size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
-
-/* attach paperclip */
-export const AttachIcon = ({ className, size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   </svg>
 );
 

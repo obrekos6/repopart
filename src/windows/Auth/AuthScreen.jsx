@@ -2,143 +2,101 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Logo from '../../assets/icons/Logo';
 import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
-import ConfirmEmail from './components/ConfirmEmail';
-import SetNickname from './components/SetNickname'; // <-- Новый компонент
 import './AuthScreen.css';
 
+const FAKE_DOMAIN = 'xn--b1ak2a9bn.com';
+
 export default function AuthScreen() {
-  const [mode, setMode] = useState('login'); // login | register | confirm | nickname
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('svyaz-email');
-    if (saved) setEmail(saved);
+    document.body.classList.add('auth-lock-scroll');
+    return () => document.body.classList.remove('auth-lock-scroll');
   }, []);
 
-  const switchMode = (m) => {
-    setMode(m);
-    setError('');
-    setShowPassword(false);
-    setToken('');
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem('svyaz-username');
+    if (saved) setUsername(saved);
+  }, []);
 
+  /* login: resolve username → email → signInWithPassword */
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
-    else localStorage.setItem('svyaz-email', email);
-    setLoading(false);
-  };
+    setError('');
+    setLoading(true);
 
-  // Регистрация: только email + password
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError(''); setLoading(true);
+    const raw = username.trim().toLowerCase();
+    let email = raw;
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    if (!raw.includes('@')) {
+      /* lookup email by username */
+      const { data } = await supabase
+        .from('profiles')
+        .select('email')
+        .ilike('username', raw)
+        .maybeSingle();
 
-    if (error) setError(error.message);
-    else {
-      localStorage.setItem('svyaz-email', email);
-      setMode('confirm');
+      if (!data?.email) {
+        setError('Юзернейм не найден');
+        setLoading(false);
+        return;
+      }
+      email = data.email;
     }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) setError('Неверный юзернейм, почта или пароль');
+    else localStorage.setItem('svyaz-username', raw);
+
     setLoading(false);
   };
 
-  // Проверка OTP
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError(''); setLoading(true);
+  const handleGoogle = async () => {
+    setError('');
+    setLoading(true);
 
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'signup',
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
     });
 
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      // После успешной верификации переходим к вводу никнейма
-      setLoading(false);
-      setMode('nickname');
     }
-  };
-
-  // Сохранение никнейма в profiles
-  const handleSaveNickname = async (nickname) => {
-    setError(''); setLoading(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError('Пользователь не найден');
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        username: nickname.trim(),
-        updated_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    }
-    // Если успешно — Supabase уже создал сессию, 
-    // App.jsx увидит это и переключит на ленту.
-  };
-
-  const props = {
-    email, setEmail, password, setPassword,
-    error, loading, showPassword, setShowPassword,
   };
 
   return (
     <div className="auth-overlay">
       <div className="auth-logo">
-        <Logo className="auth-logo-icon" />
-        <span className="auth-logo-text">связь</span>
+        <div className="auth-logo-cell" />
+        <div className="auth-logo-glass">
+          <Logo className="auth-logo-icon" />
+          <span className="auth-logo-text">связь</span>
+        </div>
+        <div className="auth-logo-cell auth-logo-cell-right">
+          <span className="auth-beta-capsule">BETA</span>
+        </div>
       </div>
 
       <div className="auth-container">
-        {mode === 'login' && (
-          <LoginForm {...props} onSubmit={handleLogin} onSwitch={() => switchMode('register')} />
-        )}
-        {mode === 'register' && (
-          <RegisterForm {...props} onSubmit={handleRegister} onSwitch={() => switchMode('login')} />
-        )}
-        {mode === 'confirm' && (
-          <ConfirmEmail
-            email={email}
-            token={token}
-            setToken={setToken}
-            error={error}
-            loading={loading}
-            onVerify={handleVerifyOtp}
-            onBack={() => switchMode('login')}
-          />
-        )}
-        {mode === 'nickname' && (
-          <SetNickname
-            email={email}
-            error={error}
-            loading={loading}
-            onSave={handleSaveNickname}
-          />
-        )}
+        <LoginForm
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          error={error}
+          loading={loading}
+          onSubmit={handleLogin}
+          onGoogle={handleGoogle}
+        />
       </div>
     </div>
   );

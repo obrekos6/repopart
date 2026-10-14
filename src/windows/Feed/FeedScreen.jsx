@@ -4,9 +4,9 @@ import Logo from '../../assets/icons/Logo';
 import { LogoutIcon, PlusIcon } from '../../assets/icons/Icons';
 import SideMenu from './components/layout/SideMenu';
 import CreateRepoModal from './components/modals/CreateRepoModal';
-import ProfileModal from './components/modals/ProfileModal';
 import PublicationList from './components/post/PublicationList';
 import PostDetailScreen from '../Post/PostDetailScreen';
+import ProfileScreen from '../Profile/ProfileScreen';
 import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
@@ -215,9 +215,10 @@ export default function FeedScreen() {
   const [tab, setTab] = useState('for-you');
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [openPost, setOpenPost] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   const sentinelRef = useRef(null);
   const trackedIdsRef = useRef(new Set());
@@ -227,6 +228,18 @@ export default function FeedScreen() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.username) setNeedsProfileSetup(true);
+      });
+  }, [currentUser]);
 
   const loadPosts = useCallback(async (mode, limit, offset) => {
     if (mode === 'for-you') {
@@ -370,10 +383,6 @@ export default function FeedScreen() {
     setOpenPost(post);
   };
 
-  const handleClosePost = () => {
-    setOpenPost(null);
-  };
-
   return (
     <>
       <div className="app">
@@ -404,6 +413,7 @@ export default function FeedScreen() {
         <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
           <Logo className="logo-icon" />
           <span className="logo-text">связь</span>
+          <span className="logo-beta-capsule">BETA</span>
         </button>
 
         <div className="double-btn">
@@ -447,19 +457,34 @@ export default function FeedScreen() {
         items={NAV_ITEMS}
         onItemClick={handleNavClick}
       />
+
       {modalOpen && (
         <CreateRepoModal onClose={() => setModalOpen(false)} onCreate={() => load(true)} />
       )}
-      {profileOpen && currentUser && (
-        <ProfileModal user={currentUser} onClose={() => setProfileOpen(false)} />
-      )}
+
       {openPost && currentUser && (
         <PostDetailScreen
           post={openPost}
           currentUser={currentUser}
-          onClose={handleClosePost}
+          onClose={() => setOpenPost(null)}
         />
       )}
+
+      {needsProfileSetup && currentUser ? (
+        <ProfileScreen
+          user={currentUser}
+          initialEdit={true}
+          forceSetup={true}
+          onClose={() => {}}
+          onComplete={() => setNeedsProfileSetup(false)}
+        />
+      ) : profileOpen && currentUser ? (
+        <ProfileScreen
+          user={currentUser}
+          onClose={() => setProfileOpen(false)}
+          onOpenPost={handleOpenPost}
+        />
+      ) : null}
     </>
   );
 }

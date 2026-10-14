@@ -20,7 +20,7 @@
   pointer-events: none;
 }
 
-/* desktop sidebar — raised above detail screen backdrop */
+/* desktop sidebar */
 .desktop-sidebar {
   display: none;
 }
@@ -135,6 +135,30 @@
   z-index: 1;
 }
 
+/* BETA capsule — pinned to the right of the centered glass */
+.logo-beta-capsule {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 139, 255, 0.1);
+  color: #008BFF;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .double-btn {
   right: 16px;
   width: 92px;
@@ -231,7 +255,6 @@
   }
 }
 
-/* active tab capsule */
 .tabs-capsule {
   position: absolute;
   top: 6px;
@@ -307,7 +330,6 @@
   font-family: var(--font-main);
 }
 
-/* refresh overlay */
 .refresh-overlay {
   display: flex;
   flex-direction: column;
@@ -323,7 +345,6 @@
   color: var(--text-secondary);
 }
 
-/* empty state */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -359,7 +380,6 @@
     padding: 16px;
     flex-direction: column;
     background: transparent;
-    /* raised above detail screen backdrop so it stays visible on desktop */
     z-index: 300;
     overflow-y: auto;
   }
