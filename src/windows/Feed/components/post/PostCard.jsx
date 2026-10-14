@@ -9,7 +9,13 @@ import PostContextMenu from './PostContextMenu';
 import Lightbox from '../media/Lightbox';
 import './PostCard.css';
 
-export default function PostCard({ post, currentUser, onOpen }) {
+export default function PostCard({
+  post,
+  currentUser,
+  onOpen,
+  readOnly = false,
+  onRequireAuth,
+}) {
   const [views, setViews] = useState(post.views || 0);
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -27,6 +33,10 @@ export default function PostCard({ post, currentUser, onOpen }) {
   const isAuthor = !!(currentUser && post.user_id === currentUser.id);
   const hasCaption = !!(post.name && post.name.trim());
 
+  const requireAuth = () => {
+    if (onRequireAuth) onRequireAuth();
+  };
+
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -42,6 +52,7 @@ export default function PostCard({ post, currentUser, onOpen }) {
   }, [post.user_id]);
 
   useEffect(() => {
+    if (readOnly) return;
     const load = async () => {
       if (pendingLikeRef.current) return;
       const { count } = await supabase
@@ -62,9 +73,10 @@ export default function PostCard({ post, currentUser, onOpen }) {
       }
     };
     load();
-  }, [post.id, currentUser]);
+  }, [post.id, currentUser, readOnly]);
 
   useEffect(() => {
+    if (readOnly) return;
     const ch = supabase
       .channel(`post-${post.id}-${uid}`)
       .on('postgres_changes',
@@ -83,9 +95,10 @@ export default function PostCard({ post, currentUser, onOpen }) {
         (p) => { if (mountedRef.current) setViews(p.new.views || 0); })
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [post.id, currentUser, uid]);
+  }, [post.id, currentUser, uid, readOnly]);
 
   const handleLike = async () => {
+    if (readOnly) { requireAuth(); return; }
     if (!currentUser || pendingLikeRef.current) return;
     pendingLikeRef.current = true;
     lastLocalRef.current = Date.now();
@@ -121,19 +134,31 @@ export default function PostCard({ post, currentUser, onOpen }) {
     }
   };
 
-  /* open comments sheet */
   const handleOpenComments = () => {
+    if (readOnly) { requireAuth(); return; }
     onOpen?.(post);
   };
 
-  /* context menu: right-click / long-press */
+  /* skip click if it landed on an interactive element */
+  const handleCardClick = (e) => {
+    if (!readOnly) return;
+    if (e.target.closest('button, a, input, textarea, [data-no-redirect]')) return;
+    requireAuth();
+  };
+
   const handleContextMenu = (e) => {
+    if (readOnly) {
+      e.preventDefault();
+      requireAuth();
+      return;
+    }
     e.preventDefault();
     setMenuOpen(true);
   };
 
   const handlePointerDown = (e) => {
     if (e.pointerType === 'mouse') return;
+    if (readOnly) return;
     longPressRef.current.startX = e.clientX;
     longPressRef.current.startY = e.clientY;
     longPressRef.current.timer = setTimeout(() => {
@@ -143,6 +168,7 @@ export default function PostCard({ post, currentUser, onOpen }) {
   };
 
   const handlePointerMove = (e) => {
+    if (readOnly) return;
     const s = longPressRef.current;
     if (!s.timer) return;
     if (Math.abs(e.clientX - s.startX) > 10 || Math.abs(e.clientY - s.startY) > 10) {
@@ -152,6 +178,7 @@ export default function PostCard({ post, currentUser, onOpen }) {
   };
 
   const handlePointerEnd = () => {
+    if (readOnly) return;
     const s = longPressRef.current;
     if (s.timer) {
       clearTimeout(s.timer);
@@ -159,10 +186,8 @@ export default function PostCard({ post, currentUser, onOpen }) {
     }
   };
 
-  /* share / copy / delete for context menu */
-  const postUrl = `${window.location.origin}/post/${post.id}`;
-
   const handleShare = async () => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -228,7 +253,8 @@ export default function PostCard({ post, currentUser, onOpen }) {
   return (
     <>
       <div
-        className="post-card"
+        className={`post-card ${readOnly ? 'is-preview' : ''}`}
+        onClick={handleCardClick}
         onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -249,7 +275,7 @@ export default function PostCard({ post, currentUser, onOpen }) {
           <PostMedia
             files={post.files}
             postName={post.name}
-            onPreview={setPreview}
+            onPreview={readOnly ? requireAuth : setPreview}
           />
         )}
 
@@ -265,17 +291,19 @@ export default function PostCard({ post, currentUser, onOpen }) {
         />
       </div>
 
-      <PostContextMenu
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        onShare={handleShare}
-        onCopy={handleCopy}
-        onDelete={handleDelete}
-        isAuthor={isAuthor}
-        hasCaption={hasCaption}
-      />
+      {!readOnly && (
+        <PostContextMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          onShare={handleShare}
+          onCopy={handleCopy}
+          onDelete={handleDelete}
+          isAuthor={isAuthor}
+          hasCaption={hasCaption}
+        />
+      )}
 
-      {preview && createPortal(
+      {preview && !readOnly && createPortal(
         <Lightbox file={preview} onClose={() => setPreview(null)} />,
         document.body
       )}

@@ -1,7 +1,13 @@
 import React from 'react';
 import PostCard from './PostCard';
 
-export default function PublicationList({ publications, currentUser, onOpenPost }) {
+export default function PublicationList({
+  publications,
+  currentUser,
+  onOpenPost,
+  readOnly = false,
+  onRequireAuth,
+}) {
   if (publications.length === 0) {
     return (
       <div className="empty-state">
@@ -19,7 +25,9 @@ export default function PublicationList({ publications, currentUser, onOpenPost 
           key={post.id}
           post={post}
           currentUser={currentUser}
-          onOpen={() => onOpenPost?.(post)}
+          onOpen={onOpenPost}
+          readOnly={readOnly}
+          onRequireAuth={onRequireAuth}
         />
       ))}
     </div>
