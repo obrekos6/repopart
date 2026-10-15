@@ -20,37 +20,123 @@
   opacity: 1;
 }
 
-/* panel — full-height slide-up */
+/* ---------- panel: шторка как у комментариев, на всю высоту ---------- */
 .profile-screen-panel {
+  --profile-width: 420px;                 /* ширина профиля = ширина постов */
+  --handle-h: 26px;                       /* высота зоны ползунка */
+  --hero-normal: calc(232px + var(--handle-h));
+  --hero-full: min(100vw, var(--profile-width));
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* цвета шторки комментариев */
+  --sheet-bg: #ededed;
+  --sheet-text: #1a1a1a;
+  --sheet-text-2: rgba(26, 26, 26, 0.55);
+  --sheet-field: rgba(255, 255, 255, 0.55);
+  --sheet-field-hover: rgba(255, 255, 255, 0.85);
+  --sheet-line: rgba(0, 0, 0, 0.06);
+
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: min(560px, 100%);
+  width: min(var(--profile-width), 100%);
   height: 100vh;
-  margin-left: calc(min(560px, 100%) / -2);
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
+  height: 100dvh;
+  margin-left: calc(min(var(--profile-width), 100%) / -2);
+  overflow: hidden;
+  background: var(--sheet-bg);
+  color: var(--sheet-text);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
   transform: translateY(100%);
-  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 380ms var(--ease);
   will-change: transform;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-screen-panel {
+    --sheet-bg: rgb(28, 28, 30);
+    --sheet-text: #f5f5f5;
+    --sheet-text-2: rgba(245, 245, 245, 0.55);
+    --sheet-field: rgba(255, 255, 255, 0.06);
+    --sheet-field-hover: rgba(255, 255, 255, 0.12);
+    --sheet-line: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .profile-screen-root.is-on .profile-screen-panel {
   transform: translateY(0);
 }
 
-/* header */
+/* ---------- ползунок ---------- */
+.profile-sheet-handle-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  height: var(--handle-h);
+  box-sizing: border-box;
+  padding-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.profile-sheet-handle-zone:active { cursor: grabbing; }
+
+/* при первой настройке закрыть нельзя */
+.profile-sheet-handle-zone.is-locked,
+.profile-sheet-handle-zone.is-locked:active { cursor: default; }
+
+.profile-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-sheet-handle { background: rgba(255, 255, 255, 0.2); }
+}
+
+/* на фото ползунок светлый */
+.profile-screen-panel.is-full .profile-sheet-handle {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- header (поверх скролла) ---------- */
 .profile-screen-header {
-  flex-shrink: 0;
-  height: 56px;
+  --p: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  height: calc(56px + var(--handle-h));
+  padding: var(--handle-h) 12px 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  z-index: 5;
+}
+
+/* фон панели появляется по мере скролла */
+.profile-screen-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sheet-bg);
+  border-bottom: 1px solid var(--sheet-line);
+  opacity: var(--p);
+  pointer-events: none;
 }
 
 .profile-screen-btn {
@@ -59,69 +145,211 @@
   border-radius: 24px;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--sheet-text);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.25s ease;
 }
 
 .profile-screen-btn:hover {
-  background: var(--bg-search);
+  background: var(--sheet-field);
 }
 
+/* в полном состоянии кнопки лежат на фото */
+.profile-screen-panel.is-full .profile-screen-btn {
+  color: #fff;
+}
+
+.profile-screen-panel.is-full .profile-screen-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* маленькая аватарка + имя появляются, когда большая аватарка уехала */
 .profile-screen-title {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: calc((var(--p) - 0.5) * 2);
+  transform: translateY(calc((1 - var(--p)) * 10px));
+  pointer-events: none;
+}
+
+.profile-screen-title-text {
   font-family: var(--font-main);
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  text-align: center;
+  color: var(--sheet-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: opacity 0.1s linear;
 }
 
-/* scroll */
+/* ---------- scroll ---------- */
 .profile-screen-scroll {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  min-height: 0;
+  overscroll-behavior-y: contain;
 }
 
-/* hero */
+/* в полном состоянии скролл заблокирован: сначала свернуть фото */
+.profile-screen-panel.is-full .profile-screen-scroll {
+  overflow-y: hidden;
+}
+
+/* ---------- hero ---------- */
+/*
+  --t: 0 → 1  раскрытие фото (свайп вниз / колесо вверх на самом верху)
+  --p: 0 → 1  сворачивание при скролле
+  Меняются только height (у самой шапки), opacity и transform.
+*/
 .profile-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px 8px;
-  gap: 12px;
-}
-
-.profile-hero-avatar {
-  border-radius: 50%;
+  --t: 0;
+  --p: 0;
+  position: relative;
   overflow: hidden;
-  flex-shrink: 0;
-  transition: width 0.05s linear, height 0.05s linear;
+  height: calc(var(--hero-normal) + (var(--hero-full) - var(--hero-normal)) * var(--t));
+  transition: height 340ms var(--ease);
 }
 
-.profile-hero-avatar img,
-.profile-hero-avatar svg {
+/* пока палец на экране — никаких transition, иначе шапка отстаёт от пальца */
+.profile-hero[data-dragging],
+.profile-hero[data-dragging] * {
+  transition: none !important;
+}
+
+/* cover: фото на всю ширину */
+.profile-cover {
+  position: absolute;
+  inset: 0;
+  background: var(--sheet-bg);
+  opacity: calc((var(--t) - 0.2) * 1.5);
+  pointer-events: none;
+  transition: opacity 340ms var(--ease);
+}
+
+.profile-cover-img {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform-origin: 50% 0;
+  transform: scale(calc(1.14 - var(--t) * 0.14));
+  transition: transform 340ms var(--ease);
+}
+
+.profile-cover-fallback {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* тот же световой градиент, что и у маленькой аватарки */
+.profile-cover-fallback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0));
+  mix-blend-mode: screen;
+}
+
+.profile-cover-fallback span {
+  position: relative;
+  font-family: var(--font-nickname);
+  font-size: min(36vw, 200px);
+  line-height: 1;
+  color: #fff;
+}
+
+.profile-cover-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0, rgba(0, 0, 0, 0) 90px),
+    linear-gradient(to top, rgba(0, 0, 0, 0.7) 0, rgba(0, 0, 0, 0) 50%);
+}
+
+.profile-cover-info {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fff;
+  opacity: calc((var(--t) - 0.55) * 2.2);
+  transform: translateY(calc((1 - var(--t)) * 14px));
+  transition: opacity 340ms var(--ease), transform 340ms var(--ease);
+}
+
+.profile-cover-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-main);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.profile-cover-username {
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* обычное состояние: круглая аватарка по центру */
+.profile-hero-normal {
+  position: absolute;
+  top: calc(56px + var(--handle-h));
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  opacity: calc(1 - var(--t) * 2.5);
+  transition: opacity 340ms var(--ease);
+}
+
+.profile-hero-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transform-origin: 50% 0;
+  transform: scale(calc(1 - var(--p) * 0.5));
+  opacity: calc(1 - var(--p) * 1.1);
+  will-change: transform, opacity;
+}
+
+.profile-hero-avatar > * {
+  display: block;
 }
 
 .profile-hero-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: opacity 0.1s linear, gap 0.1s linear;
+  gap: 2px;
+  opacity: calc(1 - var(--p) * 1.6);
 }
 
 .profile-hero-name {
@@ -131,7 +359,7 @@
   font-family: var(--font-main);
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--sheet-text);
   text-align: center;
 }
 
@@ -143,10 +371,10 @@
 .profile-hero-username {
   font-family: var(--font-main);
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--sheet-text-2);
 }
 
-/* actions */
+/* ---------- actions ---------- */
 .profile-actions {
   display: flex;
   gap: 8px;
@@ -157,9 +385,9 @@
   flex: 1;
   height: 40px;
   border-radius: 24px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-search);
-  color: var(--text-primary);
+  border: none;
+  background: var(--sheet-field);
+  color: var(--sheet-text);
   font-family: var(--font-main);
   font-size: 0.9rem;
   font-weight: 500;
@@ -168,14 +396,14 @@
 }
 
 .profile-action:hover {
-  background: var(--bg-card);
+  background: var(--sheet-field-hover);
 }
 
-/* tabs */
+/* ---------- tabs ---------- */
 .profile-tabs {
   display: flex;
   padding: 0 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--sheet-line);
   margin-top: 12px;
 }
 
@@ -184,7 +412,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
+  color: var(--sheet-text-2);
   font-family: var(--font-main);
   font-size: 0.9rem;
   font-weight: 500;
@@ -193,24 +421,24 @@
 }
 
 .profile-tab.is-active {
-  color: var(--text-primary);
+  color: var(--sheet-text);
   border-bottom-color: var(--accent);
   font-weight: 600;
 }
 
-/* posts */
+/* ---------- posts ---------- */
 .profile-posts {
   display: flex;
   justify-content: center;
-  padding: 16px;
+  padding: 16px 0;
 }
 
 .profile-posts .publication-list {
   width: 100%;
-  max-width: 420px;
+  max-width: var(--profile-width);
 }
 
-/* empty */
+/* ---------- empty ---------- */
 .profile-empty {
   padding: 60px 20px;
   text-align: center;
@@ -220,28 +448,49 @@
   font-family: var(--font-main);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--sheet-text);
   margin-bottom: 8px;
 }
 
 .profile-empty-sub {
   font-family: var(--font-main);
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--sheet-text-2);
   max-width: 320px;
   margin: 0 auto;
   line-height: 1.4;
 }
 
-/* edit bottom-sheet */
+/* ---------- edit sheet: как шторка комментариев, но на всю высоту ---------- */
 .profile-edit-sheet {
+  --sheet-bg: #ededed;
+  --bg-primary: var(--sheet-bg);
+  --bg-search: rgba(255, 255, 255, 0.55);
+  --text-primary: #1a1a1a;
+  --text-secondary: rgba(26, 26, 26, 0.55);
+
   position: absolute;
   inset: 0;
   z-index: 20;
-  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
-  animation: profileEditSlide 300ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  overflow: hidden;
+  background: var(--sheet-bg);
+  color: var(--text-primary);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  animation: profileEditSlide 380ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-edit-sheet {
+    --sheet-bg: rgb(28, 28, 30);
+    --bg-search: rgba(255, 255, 255, 0.06);
+    --text-primary: #f5f5f5;
+    --text-secondary: rgba(245, 245, 245, 0.55);
+  }
 }
 
 @keyframes profileEditSlide {
@@ -249,25 +498,48 @@
   to { transform: translateY(0); }
 }
 
-.profile-edit-sheet-handle {
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  margin: 12px auto 8px;
+/* handle — зона перетаскивания */
+.profile-edit-handle-zone {
   flex-shrink: 0;
+  padding: 12px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-@media (prefers-color-scheme: light) {
-  .profile-edit-sheet-handle {
-    background: rgba(0, 0, 0, 0.15);
+.profile-edit-handle-zone:active {
+  cursor: grabbing;
+}
+
+/* при первой настройке закрыть нельзя */
+.profile-edit-handle-zone.is-locked,
+.profile-edit-handle-zone.is-locked:active {
+  cursor: default;
+}
+
+.profile-edit-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-edit-handle {
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
 .profile-edit-sheet-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 8px 20px 32px;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 20px max(32px, env(safe-area-inset-bottom));
 }
 
 .profile-edit-title {
@@ -277,4 +549,14 @@
   color: var(--text-primary);
   margin: 0 0 20px;
   text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-hero,
+  .profile-cover,
+  .profile-cover-img,
+  .profile-cover-info,
+  .profile-hero-normal {
+    transition: none;
+  }
 }
