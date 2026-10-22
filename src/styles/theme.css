@@ -1,16 +1,11 @@
-/* Подключаем оба шрифта с нужными весами */
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;700&family=Inter:wght@400;600&display=swap');
-
 :root {
   --accent: rgb(0, 139, 255);
   --accent-text: #fff;
   
-  /* Основной текст и UI — обычный Inter */
-  --font-main: 'Inter', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-nickname: 'Inter', Roboto, sans-serif;
-  
-  /* Заголовки и логотипы — Inter Tight */
-  --font-heading: 'Inter Tight', 'Inter', Roboto, sans-serif;
+  /* Идеальный системный стек шрифтов */
+  --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-logo: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-nickname: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   --r-lg: 24px;
 
@@ -46,9 +41,4 @@ body {
   color: var(--text-primary);
   font-family: var(--font-main);
   transition: background-color 0.2s, color 0.2s;
-}
-
-/* Применяем Inter Tight к заголовкам и логотипу */
-h1, h2, h3, h4, h5, h6, .logo {
-  font-family: var(--font-heading);
 }
