@@ -1,0 +1,116 @@
+.post-ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 300;
+  transition: background 0.28s ease;
+}
+
+.post-ctx-backdrop.is-visible {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.post-ctx-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  width: min(420px, 100%);
+  background: var(--bg-card);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  transition: transform 0.28s cubic-bezier(.32, .72, 0, 1), background 0.28s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  touch-action: none;
+}
+
+.post-ctx-sheet.is-dragging {
+  transition: none;
+}
+
+.post-ctx-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  margin: 4px auto 8px;
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .post-ctx-handle {
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+.post-ctx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.post-ctx-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #ededed;
+  border: none;
+  color: #1a1a1a;
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 16px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.post-ctx-item:hover {
+  filter: brightness(0.96);
+}
+
+.post-ctx-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.post-ctx-item.is-danger {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.post-ctx-item.is-danger:hover {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  .post-ctx-item {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f5f5f5;
+  }
+
+  .post-ctx-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .post-ctx-item.is-danger {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.14);
+  }
+
+  .post-ctx-item.is-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+  }
+}

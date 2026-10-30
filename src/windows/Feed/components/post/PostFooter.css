@@ -1,0 +1,123 @@
+.post-footer {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0 0 0; 
+  gap: 0;
+}
+
+/* Верхняя строка */
+.post-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 12px; 
+}
+
+.post-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Иконки всегда цвета текста (белые в темной, черные в светлой) */
+.post-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: var(--font-bold);
+  color: var(--text-primary); /* Был --text-secondary, теперь всегда яркий */
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: opacity 0.15s ease;
+}
+
+.post-action:hover {
+  opacity: 0.7; /* Легкое затухание вместо смены цвета */
+}
+
+.post-action svg {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.like-btn {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Красный цвет при лайке */
+.like-btn.is-liked {
+  color: #ef4444; 
+}
+
+.like-btn.is-liked .like-icon {
+  color: #ef4444;
+}
+
+.like-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-views {
+  cursor: default;
+}
+
+/* Нижняя строка */
+.post-comments-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-color); 
+  border-radius: 0;
+  padding: 12px 4px;
+  color: var(--text-primary); 
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.post-comments-btn:hover {
+  opacity: 0.7;
+}
+
+.post-comments-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.post-comments-left svg {
+  color: var(--text-primary); 
+}
+
+.post-comments-text {
+  color: var(--text-primary); 
+}
+
+.unread-dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent);
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.post-comments-right {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary); 
+}

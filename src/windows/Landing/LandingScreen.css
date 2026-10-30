@@ -1,0 +1,54 @@
+/* лендинг использует общие стили из FeedScreen.css — здесь только своё */
+
+.landing-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+  height: 46px;
+  margin: 24px auto 0;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.landing-more:hover {
+  background: var(--bg-search);
+}
+
+.landing-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  margin-bottom: 40px;
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+}
+
+.landing-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.landing-link:hover {
+  color: var(--text-primary);
+}
+
+.landing-sep {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.landing .post-card.is-preview {
+  user-select: none;
+  -webkit-user-select: none;
+}

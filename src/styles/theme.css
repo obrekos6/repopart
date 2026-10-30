@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
+
+:root {
+  --accent: rgb(0, 139, 255);
+  --accent-text: #fff;
+  
+  /* Шрифты */
+  --font-main: 'Roboto', sans-serif;
+  --font-logo: 'Roboto', sans-serif;
+  --font-nickname: 'Roboto', sans-serif;
+
+  /* Жирность шрифта */
+  --font-regular: 400;
+  --font-bold: 500;     
+  --font-heavy: 600;    
+  --font-black: 700;    
+
+  /* Скругления (Border Radius) */
+  --radius-normal: 24px;
+  --radius-medium: 16px;
+  --radius-small: 4px;
+  --radius-pill: 999px;
+
+  /* Тёмная тема */
+  --bg-primary: rgb(0, 0, 0);
+  --bg-card: rgb(10, 10, 10);
+  --bg-post: rgb(22, 22, 24);
+  --text-primary: rgb(245, 245, 245);
+  --text-secondary: rgb(107, 106, 107);
+  --bg-search: rgb(20, 20, 20);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --logo-color: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: rgb(255, 255, 255);
+    --bg-card: rgb(255, 255, 255);
+    --bg-post: rgb(241, 241, 246);
+    --text-primary: rgb(0, 0, 0);
+    --text-secondary: rgb(112, 117, 121);
+    --bg-search: rgb(242, 242, 242);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --logo-color: #000;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-weight: var(--font-regular);
+  transition: background-color 0.2s, color 0.2s;
+}

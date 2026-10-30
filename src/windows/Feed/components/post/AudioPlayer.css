@@ -1,0 +1,82 @@
+.audio-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 0;
+  background: transparent;
+  user-select: none;
+}
+
+/* Кнопка Play/Пауза */
+.audio-play {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--text-primary); /* Черно-белый цвет вместо акцента */
+  color: var(--bg-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.audio-play:hover { opacity: 0.9; }
+.audio-play:active { transform: scale(0.94); }
+
+.audio-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audio-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  height: 32px;
+  cursor: pointer;
+  touch-action: none;
+  padding: 4px 0;
+}
+
+.audio-waveform.is-scrubbing {
+  cursor: grabbing;
+}
+
+.audio-bar {
+  flex: 1;
+  min-width: 2px;
+  max-width: 3px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  opacity: 0.35;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  pointer-events: none;
+}
+
+/* Активная волна тоже черно-белая */
+.audio-bar.is-active {
+  background: var(--text-primary); 
+  opacity: 1;
+}
+
+.audio-meta {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.audio-time {
+  color: var(--text-primary);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.01em;
+}
