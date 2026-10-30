@@ -16,6 +16,7 @@ export default function PostCard({
   onOpen,
   readOnly = false,
   onRequireAuth,
+  onOpenProfile,
 }) {
   const [views, setViews] = useState(post.views || 0);
   const [likes, setLikes] = useState(0);
@@ -33,6 +34,10 @@ export default function PostCard({
   const lastLocalRef = useRef(0);
   const mountedRef = useRef(true);
   const longPressRef = useRef({ timer: null, startX: 0, startY: 0 });
+  
+  // Для трекинга просмотров
+  const cardRef = useRef(null);
+  const hasTrackedView = useRef(false);
 
   const isAuthor = !!(currentUser && post.user_id === currentUser.id);
   const hasCaption = !!(post.name && post.name.trim());
@@ -45,6 +50,45 @@ export default function PostCard({
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
+
+  // Трекинг просмотров (2 секунды в зоне видимости)
+  useEffect(() => {
+    if (readOnly || !currentUser || hasTrackedView.current) return;
+    
+    let timeoutId;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          timeoutId = setTimeout(async () => {
+            if (hasTrackedView.current) return;
+            hasTrackedView.current = true;
+            
+            try {
+              await supabase.rpc('track_views_batch', { 
+                p_post_ids: [post.id], 
+                p_user_id: currentUser.id 
+              });
+              // Оптимистичное обновление интерфейса
+              setViews(v => v + 1); 
+            } catch (e) {
+              console.error('Ошибка трекинга просмотра:', e);
+            }
+          }, 2000); // 2 секунды
+        } else {
+          if (timeoutId) clearTimeout(timeoutId);
+        }
+      },
+      { threshold: 0.8 } // Пост виден на 80%
+    );
+    
+    if (cardRef.current) observer.observe(cardRef.current);
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (cardRef.current) observer.unobserve(cardRef.current);
+    };
+  }, [post.id, currentUser, readOnly]);
 
   useEffect(() => {
     if (!post.user_id) return;
@@ -163,7 +207,7 @@ export default function PostCard({
   const handlePointerDown = (e) => {
     if (e.pointerType === 'mouse') return;
     if (readOnly) return;
-    if (e.target.closest('a')) return; // Игнорируем долгое нажатие, если это ссылка
+    if (e.target.closest('a') || e.target.closest('.post-header')) return; 
 
     longPressRef.current.startX = e.clientX;
     longPressRef.current.startY = e.clientY;
@@ -254,9 +298,8 @@ export default function PostCard({
   };
 
   const fallbackName = post.author_email ? post.author_email.split('@')[0] : 'user';
-  const displayName = author?.username || fallbackName;
+  const displayName = author?.display_name || author?.username || fallbackName;
 
-  // Утилита для ссылок: обычный клик -> браузер, Shift+клик или долгое зажатие -> встроенный браузер
   const renderTextWithLinks = (text) => {
     if (!text) return null;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -310,6 +353,7 @@ export default function PostCard({
   return (
     <>
       <div
+        ref={cardRef}
         className={`post-card ${readOnly ? 'is-preview' : ''}`}
         onClick={handleCardClick}
         onContextMenu={handleContextMenu}
@@ -324,6 +368,7 @@ export default function PostCard({
           displayName={displayName}
           createdAt={post.created_at}
           authorEmail={post.author_email}
+          onOpenProfile={onOpenProfile}
         />
 
         {post.files?.length > 0 && (

@@ -7,7 +7,7 @@ import { TrashIcon, VerifiedIcon } from '../../../assets/icons/Icons';
 
 const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
-export default function CommentItem({ comment, currentUser, onDelete }) {
+export default function CommentItem({ comment, currentUser, onDelete, onOpenProfile }) {
   const [author, setAuthor] = useState(null);
   const mountedRef = useRef(true);
 
@@ -30,26 +30,46 @@ export default function CommentItem({ comment, currentUser, onDelete }) {
   }, [comment.user_id]);
 
   const fallback = comment.user_id ? comment.user_id.slice(0, 6) : 'user';
-  const displayName = author?.username || fallback;
+  const displayName = author?.display_name || author?.username || fallback;
+
+  const canOpenProfile = !!(onOpenProfile && comment.user_id);
 
   const handleDelete = () => {
     if (!window.confirm('Удалить комментарий?')) return;
     onDelete(comment.id);
   };
 
+  const handleOpenProfile = () => {
+    if (!canOpenProfile) return;
+    onOpenProfile(comment.user_id);
+  };
+
   return (
     <div className={`comment-item ${isTemp ? 'is-temp' : ''}`}>
-      <div className="comment-item-avatar">
+      <button
+        type="button"
+        className="comment-item-avatar"
+        onClick={handleOpenProfile}
+        disabled={!canOpenProfile}
+        aria-label={`Открыть профиль ${displayName}`}
+      >
         <Avatar
           url={author?.avatar_url}
           name={displayName}
           seed={comment.user_id}
           size={36}
         />
-      </div>
+      </button>
       <div className="comment-body">
         <div className="comment-head">
-          <span className="comment-author">{displayName}</span>
+          <button
+            type="button"
+            className="comment-author"
+            onClick={handleOpenProfile}
+            disabled={!canOpenProfile}
+          >
+            {displayName}
+          </button>
           {isVerified && <VerifiedIcon size={14} className="comment-verified" />}
           <span className="comment-time">{formatTime(comment.created_at)}</span>
         </div>

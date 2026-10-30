@@ -6,11 +6,16 @@ import './PostHeader.css';
 
 const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
-export default function PostHeader({ author, userId, displayName, createdAt, authorEmail }) {
+export default function PostHeader({ author, userId, displayName, createdAt, authorEmail, onOpenProfile }) {
   const isVerified = authorEmail && VERIFIED_EMAILS.includes(authorEmail);
 
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (onOpenProfile) onOpenProfile(userId);
+  };
+
   return (
-    <div className="post-header">
+    <div className="post-header" onClick={handleClick} style={{ cursor: onOpenProfile ? 'pointer' : 'default' }}>
       <Avatar
         url={author?.avatar_url}
         name={displayName}

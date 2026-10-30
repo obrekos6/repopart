@@ -2,7 +2,7 @@ import React from 'react';
 import CommentItem from './CommentItem';
 import './Comment.css';
 
-function CommentList({ comments, currentUser, onDelete }, ref) {
+function CommentList({ comments, currentUser, onDelete, onOpenProfile }, ref) {
   return (
     <div className="comment-list" ref={ref}>
       {comments.map((c) => (
@@ -11,6 +11,7 @@ function CommentList({ comments, currentUser, onDelete }, ref) {
           comment={c}
           currentUser={currentUser}
           onDelete={onDelete}
+          onOpenProfile={onOpenProfile}
         />
       ))}
     </div>

@@ -5,7 +5,6 @@
   gap: 0;
 }
 
-/* Верхняя строка */
 .post-stats-row {
   display: flex;
   align-items: center;
@@ -19,14 +18,13 @@
   gap: 16px;
 }
 
-/* Иконки всегда цвета текста (белые в темной, черные в светлой) */
 .post-action {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
   font-weight: var(--font-bold);
-  color: var(--text-primary); /* Был --text-secondary, теперь всегда яркий */
+  color: var(--text-primary);
   background: transparent;
   border: none;
   padding: 4px 0;
@@ -36,7 +34,7 @@
 }
 
 .post-action:hover {
-  opacity: 0.7; /* Легкое затухание вместо смены цвета */
+  opacity: 0.7;
 }
 
 .post-action svg {
@@ -50,7 +48,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Красный цвет при лайке */
 .like-btn.is-liked {
   color: #ef4444; 
 }
@@ -70,7 +67,6 @@
   cursor: default;
 }
 
-/* Нижняя строка */
 .post-comments-btn {
   display: flex;
   align-items: center;
@@ -120,4 +116,29 @@
   display: flex;
   align-items: center;
   color: var(--text-primary); 
+}
+
+/* Аватарки комментаторов */
+.post-commenters-avatars {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.post-commenter-avatar {
+  margin-left: -8px;
+  border: 2px solid var(--bg-post);
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  display: flex;
+}
+
+.post-commenter-avatar:first-child {
+  margin-left: 0;
+  z-index: 3;
+}
+
+.post-commenter-avatar:nth-child(2) {
+  z-index: 2;
 }

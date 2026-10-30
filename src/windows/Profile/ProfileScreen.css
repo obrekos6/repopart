@@ -7,7 +7,6 @@
 
 .profile-screen-root > * { pointer-events: auto; }
 
-/* backdrop */
 .profile-screen-backdrop {
   position: absolute;
   inset: 0;
@@ -20,7 +19,6 @@
   opacity: 1;
 }
 
-/* ---------- panel ---------- */
 .profile-screen-panel {
   --profile-width: 420px;
   --handle-h: 26px;
@@ -68,7 +66,6 @@
   transform: translateY(0);
 }
 
-/* ---------- ползунок ---------- */
 .profile-sheet-handle-zone {
   position: absolute;
   top: 0;
@@ -108,7 +105,6 @@
   background: rgba(255, 255, 255, 0.7);
 }
 
-/* ---------- header ---------- */
 .profile-screen-header {
   --p: 0;
   position: absolute;
@@ -184,7 +180,6 @@
   white-space: nowrap;
 }
 
-/* ---------- scroll ---------- */
 .profile-screen-scroll {
   position: absolute;
   inset: 0;
@@ -198,7 +193,6 @@
   overflow-y: hidden;
 }
 
-/* ---------- hero ---------- */
 .profile-hero {
   --t: 0;
   --p: 0;
@@ -358,11 +352,11 @@
   color: var(--sheet-text-2);
 }
 
-/* ---------- actions ---------- */
 .profile-actions {
   display: flex;
   gap: 8px;
   padding: 12px 16px 4px;
+  min-height: 56px; /* Сохраняем высоту даже если кнопки нет */
 }
 
 .profile-action {
@@ -383,7 +377,6 @@
   background: var(--sheet-field-hover);
 }
 
-/* ---------- tabs ---------- */
 .profile-tabs {
   display: flex;
   padding: 0 16px;
@@ -410,7 +403,6 @@
   font-weight: var(--font-bold);
 }
 
-/* ---------- posts ---------- */
 .profile-posts {
   display: flex;
   justify-content: center;
@@ -422,7 +414,6 @@
   max-width: var(--profile-width);
 }
 
-/* ---------- empty ---------- */
 .profile-empty {
   padding: 60px 20px;
   text-align: center;
@@ -445,7 +436,6 @@
   line-height: 1.4;
 }
 
-/* ---------- edit sheet ---------- */
 .profile-edit-sheet {
   --sheet-bg: #ededed;
   --bg-primary: var(--sheet-bg);

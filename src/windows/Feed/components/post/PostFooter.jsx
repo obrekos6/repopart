@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
+import { getProfile } from '../../../../lib/profilesCache';
 import { HeartFilledIcon, EyeIcon, CommentIcon, ArrowRightIcon, DownloadIcon } from '../../../../assets/icons/Icons';
+import Avatar from './Avatar';
 import './PostFooter.css';
 
 const formatNumber = (n) => {
@@ -29,6 +31,7 @@ export default function PostFooter({
   hasUnreadComments 
 }) {
   const [commentCount, setCommentCount] = useState(0);
+  const [recentCommenters, setRecentCommenters] = useState([]);
   const instanceIdRef = useRef(Math.random().toString(36).slice(2, 9));
 
   useEffect(() => {
@@ -38,6 +41,22 @@ export default function PostFooter({
       .select('*', { count: 'exact', head: true })
       .eq('repository_id', postId)
       .then(({ count }) => setCommentCount(count || 0));
+  }, [postId]);
+
+  useEffect(() => {
+    if (!postId) return;
+    supabase
+      .from('comments')
+      .select('user_id')
+      .eq('repository_id', postId)
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(async ({ data }) => {
+        if (!data) return;
+        const uniqueIds = [...new Set(data.map(c => c.user_id))].slice(0, 3);
+        const profiles = await Promise.all(uniqueIds.map(id => getProfile(supabase, id)));
+        setRecentCommenters(profiles.filter(Boolean));
+      });
   }, [postId]);
 
   useEffect(() => {
@@ -53,6 +72,18 @@ export default function PostFooter({
             .select('*', { count: 'exact', head: true })
             .eq('repository_id', postId);
           setCommentCount(count || 0);
+          
+          const { data } = await supabase
+            .from('comments')
+            .select('user_id')
+            .eq('repository_id', postId)
+            .order('created_at', { ascending: false })
+            .limit(3);
+          if (data) {
+            const uniqueIds = [...new Set(data.map(c => c.user_id))].slice(0, 3);
+            const profiles = await Promise.all(uniqueIds.map(id => getProfile(supabase, id)));
+            setRecentCommenters(profiles.filter(Boolean));
+          }
         })
       .subscribe();
     return () => supabase.removeChannel(ch);
@@ -65,19 +96,16 @@ export default function PostFooter({
 
   const handleDownload = async (e) => {
     e.stopPropagation();
-    const f = files[0]; // скачиваем первый файл
+    const f = files[0];
     if (!f) return;
-    
-    // Используем оригинальное имя файла (с расширением)
     const filename = f.name || 'download';
-    
     try {
       const res = await fetch(f.url);
       const blob = await res.blob();
       const a = document.createElement('a');
       const objUrl = URL.createObjectURL(blob);
       a.href = objUrl;
-      a.download = filename; // Браузер сохранит с правильным расширением
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -90,6 +118,8 @@ export default function PostFooter({
   const commentText = commentCount === 0 
     ? 'Прокомментировать' 
     : `${commentCount} ${plural(commentCount, ['комментарий', 'комментария', 'комментариев'])}`;
+
+  const hasCommenters = recentCommenters.length > 0;
 
   return (
     <div className="post-footer">
@@ -123,7 +153,22 @@ export default function PostFooter({
 
       <button className="post-comments-btn" onClick={handleComments}>
         <div className="post-comments-left">
-          <CommentIcon size={20} />
+          {hasCommenters ? (
+            <div className="post-commenters-avatars">
+              {recentCommenters.map((p, i) => (
+                <div key={i} className="post-commenter-avatar">
+                  <Avatar
+                    url={p.avatar_url}
+                    name={p.display_name || p.username}
+                    seed={p.id}
+                    size={20}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <CommentIcon size={20} />
+          )}
           <span className="post-comments-text">{commentText}</span>
           {hasUnreadComments && <span className="unread-dot" />}
         </div>

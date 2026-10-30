@@ -7,6 +7,7 @@ export default function PublicationList({
   onOpenPost,
   readOnly = false,
   onRequireAuth,
+  onOpenProfile,
 }) {
   if (publications.length === 0) {
     return (
@@ -28,6 +29,7 @@ export default function PublicationList({
           onOpen={onOpenPost}
           readOnly={readOnly}
           onRequireAuth={onRequireAuth}
+          onOpenProfile={onOpenProfile}
         />
       ))}
     </div>

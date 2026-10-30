@@ -35,11 +35,12 @@ export default function FeedScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [openPost, setOpenPost] = useState(null);
+  
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileUserId, setProfileUserId] = useState(null); // Для чужих профилей
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   const sentinelRef = useRef(null);
-  const trackedIdsRef = useRef(new Set());
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
 
@@ -111,7 +112,6 @@ export default function FeedScreen() {
 
     if (reset) {
       setPosts(data);
-      trackedIdsRef.current = new Set();
     } else {
       setPosts((prev) => [...prev, ...data]);
     }
@@ -128,7 +128,6 @@ export default function FeedScreen() {
 
   const handleLogoClick = useCallback(async () => {
     if (refreshing) return;
-
     const isAtTop = window.scrollY < 5;
 
     if (!isAtTop) {
@@ -143,11 +142,8 @@ export default function FeedScreen() {
       const data = await loadPosts(tab, POSTS_PER_PAGE, 0);
       if (reqId !== requestIdRef.current) return;
       setPosts(data);
-      trackedIdsRef.current = new Set();
       setHasMore(data.length === POSTS_PER_PAGE);
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     await new Promise((r) => setTimeout(r, 600));
     setRefreshing(false);
@@ -180,25 +176,29 @@ export default function FeedScreen() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  useEffect(() => {
-    if (!currentUser || posts.length === 0) return;
-    const newIds = posts.map((p) => p.id).filter((id) => !trackedIdsRef.current.has(id));
-    if (newIds.length === 0) return;
-    newIds.forEach((id) => trackedIdsRef.current.add(id));
-    supabase.rpc('track_views_batch', { p_post_ids: newIds, p_user_id: currentUser.id });
-  }, [currentUser, posts.length]);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   const handleNavClick = (action) => {
-    if (action === 'profile') setProfileOpen(true);
+    if (action === 'profile') {
+      setProfileUserId(null);
+      setProfileOpen(true);
+    }
     setMenuOpen(false);
   };
 
   const handleOpenPost = (post) => {
     setOpenPost(post);
+  };
+
+  const handleOpenProfile = (userId) => {
+    if (userId === currentUser?.id) {
+      setProfileUserId(null);
+      setProfileOpen(true);
+    } else {
+      setProfileUserId(userId);
+    }
   };
 
   return (
@@ -261,6 +261,7 @@ export default function FeedScreen() {
                   publications={posts}
                   currentUser={currentUser}
                   onOpenPost={handleOpenPost}
+                  onOpenProfile={handleOpenProfile}
                 />
                 {hasMore && <div ref={sentinelRef} className="load-more-sentinel" />}
               </>
@@ -285,6 +286,7 @@ export default function FeedScreen() {
           post={openPost}
           currentUser={currentUser}
           onClose={() => setOpenPost(null)}
+          onOpenProfile={handleOpenProfile}
         />
       )}
 
@@ -300,6 +302,13 @@ export default function FeedScreen() {
         <ProfileScreen
           user={currentUser}
           onClose={() => setProfileOpen(false)}
+          onOpenPost={handleOpenPost}
+        />
+      ) : profileUserId ? (
+        <ProfileScreen
+          user={currentUser}
+          targetUserId={profileUserId}
+          onClose={() => setProfileUserId(null)}
           onOpenPost={handleOpenPost}
         />
       ) : null}

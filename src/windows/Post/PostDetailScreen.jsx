@@ -6,7 +6,7 @@ import CommentList from './components/CommentList';
 import CommentInput from './components/CommentInput';
 import './PostDetailScreen.css';
 
-export default function PostDetailScreen({ post, currentUser, onClose }) {
+export default function PostDetailScreen({ post, currentUser, onClose, onOpenProfile, zIndex = 250 }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
@@ -206,7 +206,7 @@ export default function PostDetailScreen({ post, currentUser, onClose }) {
     : undefined;
 
   return createPortal(
-    <div className={`post-detail-root ${visible ? 'is-on' : ''}`}>
+    <div className={`post-detail-root ${visible ? 'is-on' : ''}`} style={{ zIndex }}>
       <div className="post-detail-backdrop" onClick={handleClose} />
 
       <div
@@ -246,6 +246,7 @@ export default function PostDetailScreen({ post, currentUser, onClose }) {
                 comments={comments}
                 currentUser={currentUser}
                 onDelete={handleDeleteComment}
+                onOpenProfile={onOpenProfile}
               />
             )}
           </div>

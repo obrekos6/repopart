@@ -10,6 +10,9 @@ import { useEffect, useRef } from 'react';
  *
  * Each entry carries a unique id, so stacked modals don't pop
  * each other's history entries.
+ *
+ * Listener ignores popstate when another entry was popped:
+ * if our entry is still on top, we do nothing.
  */
 export function useBackButton(onBack, enabled = true) {
   const onBackRef = useRef(onBack);
@@ -28,6 +31,9 @@ export function useBackButton(onBack, enabled = true) {
     }
 
     const onPop = () => {
+      // If our entry is still the current one, another modal's entry
+      // was popped — do not react.
+      if (window.history.state?.__modalId === id) return;
       onBackRef.current?.();
     };
 

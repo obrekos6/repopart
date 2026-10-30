@@ -11,34 +11,29 @@ import './ProfileScreen.css';
 
 const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
-/*
-  Три состояния шапки профиля:
-    0 — свёрнутое: аватарка и имя уехали в верхнюю панель (зависит от скролла, --p: 0 → 1)
-    1 — обычное:   круглая аватарка по центру
-    2 — полное:    фото на всю ширину (тянем вниз на самом верху, --t: 0 → 1)
-
-  Во время жеста значения пишутся прямо в CSS-переменные (--p, --t) без setState,
-  поэтому лента постов не перерисовывается на каждый кадр.
-*/
-const COLLAPSE_DISTANCE = 110; /* px скролла до полного сворачивания */
-const PULL_RANGE = 180;        /* px движения пальца до полного раскрытия */
+const COLLAPSE_DISTANCE = 110; 
+const PULL_RANGE = 180;        
 const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 const SHEET_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 export default function ProfileScreen({
   user,
+  targetUserId,
   onClose,
   onOpenPost,
   initialEdit = false,
   forceSetup = false,
   onComplete,
 }) {
+  const profileId = targetUserId || user?.id;
+  const isOwnProfile = !targetUserId || targetUserId === user?.id;
+
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState(initialEdit);
-  const [mode, setMode] = useState('normal'); /* 'normal' | 'full' */
+  const [mode, setMode] = useState('normal'); 
 
   const scrollRef = useRef(null);
   const headerRef = useRef(null);
@@ -54,8 +49,6 @@ export default function ProfileScreen({
   const editDragRef = useRef({
     active: false, pointerId: null, startY: 0, lastY: 0, lastT: 0, velocity: 0, dy: 0,
   });
-
-  /* ---------- управление переменными анимации ---------- */
 
   const setVar = useCallback((name, value) => {
     headerRef.current?.style.setProperty(name, value);
@@ -76,7 +69,6 @@ export default function ProfileScreen({
     setVar('--t', next === 'full' ? '1' : '0');
   }, [setVar]);
 
-  /* ---------- главное окно профиля: перетаскивание за ползунок ---------- */
   const onPanelDragStart = (e) => {
     if (forceSetup || closingRef.current) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -123,7 +115,6 @@ export default function ProfileScreen({
     }
   };
 
-  /* ---------- шторка редактирования: закрытие и перетаскивание ---------- */
   const closeEdit = useCallback(() => {
     if (forceSetup || editClosingRef.current) return;
     const el = editSheetRef.current;
@@ -177,14 +168,12 @@ export default function ProfileScreen({
     }
   };
 
-  /* ---------- back button ---------- */
   useBackButton(() => {
     if (modeRef.current === 'full') { applyMode('normal'); return; }
     if (editing && !forceSetup) { closeEdit(); return; }
     if (!forceSetup) handleClose();
   }, true);
 
-  /* ---------- slide up ---------- */
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     const prev = document.body.style.overflow;
@@ -192,13 +181,12 @@ export default function ProfileScreen({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  /* ---------- раскрытие/сворачивание фото: свайп, колесо мыши, тачпад ---------- */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return undefined;
 
     let startY = 0;
-    let anchorY = null; /* точка, с которой начали тянуть, когда scrollTop стал 0 */
+    let anchorY = null; 
     let dragging = false;
     let lastT = 0;
 
@@ -223,7 +211,7 @@ export default function ProfileScreen({
         if (el.scrollTop > 0) { anchorY = null; return; }
         if (anchorY === null) anchorY = y;
         const dy = y - anchorY;
-        if (dy <= 0 && !dragging) return; /* обычный скролл вверх */
+        if (dy <= 0 && !dragging) return; 
         if (e.cancelable) e.preventDefault();
         begin();
         lastT = clamp(dy / PULL_RANGE);
@@ -246,20 +234,18 @@ export default function ProfileScreen({
       applyMode(goFull ? 'full' : 'normal');
     };
 
-    /* колесо мыши / тачпад: вверх на самом верху — раскрыть, вниз — свернуть */
     let wheelLockUntil = 0;
     const onWheel = (e) => {
       if (e.ctrlKey || Math.abs(e.deltaY) < 2) return;
       const now = performance.now();
 
       if (now < wheelLockUntil) {
-        /* инерция после смены состояния — гасим, чтобы не прокрутило ленту */
         if (modeRef.current === 'full' || el.scrollTop <= 0) e.preventDefault();
         return;
       }
 
       if (modeRef.current === 'normal') {
-        if (el.scrollTop > 0 || e.deltaY > 0) return; /* обычный скролл */
+        if (el.scrollTop > 0 || e.deltaY > 0) return; 
         e.preventDefault();
         wheelLockUntil = now + 500;
         applyMode('full');
@@ -285,31 +271,30 @@ export default function ProfileScreen({
     };
   }, [applyMode, setVar, setDragging]);
 
-  /* ---------- load profile + posts ---------- */
   const loadProfile = useCallback(() => {
-    if (!user) return;
+    if (!profileId) return;
     supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', profileId)
       .maybeSingle()
       .then(({ data }) => setProfile(data));
-  }, [user]);
+  }, [profileId]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!profileId) return;
     loadProfile();
 
     supabase
       .from('repositories')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profileId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setPosts(data || []);
         setLoading(false);
       });
-  }, [user, loadProfile]);
+  }, [profileId, loadProfile]);
 
   const handleClose = () => {
     if (closingRef.current) return;
@@ -330,13 +315,12 @@ export default function ProfileScreen({
     else closeEdit();
   };
 
-  /* скролл: 1 → 0, без setState */
   const handleScroll = (e) => {
     setVar('--p', String(clamp(e.currentTarget.scrollTop / COLLAPSE_DISTANCE)));
   };
 
-  const isVerified = user?.email && VERIFIED_EMAILS.includes(user.email);
-  const displayName = profile?.display_name || profile?.username || user?.email?.split('@')[0] || 'user';
+  const isVerified = profile?.email && VERIFIED_EMAILS.includes(profile.email) || (user?.email && VERIFIED_EMAILS.includes(user.email));
+  const displayName = profile?.display_name || profile?.username || 'user';
   const username = profile?.username || '';
   const avatarUrl = profile?.avatar_url;
 
@@ -351,7 +335,6 @@ export default function ProfileScreen({
         ref={panelRef}
         className={`profile-screen-panel ${mode === 'full' ? 'is-full' : ''}`}
       >
-        {/* ползунок: тянуть вниз, чтобы закрыть */}
         <div
           className={`profile-sheet-handle-zone ${forceSetup ? 'is-locked' : ''}`}
           onPointerDown={onPanelDragStart}
@@ -369,16 +352,21 @@ export default function ProfileScreen({
             </button>
           )}
           <div className="profile-screen-title">
-            <Avatar url={avatarUrl} name={displayName} seed={user?.id} size={28} />
+            <Avatar url={avatarUrl} name={displayName} seed={profileId} size={28} />
             <span className="profile-screen-title-text">{displayName}</span>
           </div>
-          <button
-            className="profile-screen-btn"
-            onClick={async () => { await supabase.auth.signOut(); }}
-            aria-label="Выйти"
-          >
-            <LogoutIcon size={20} />
-          </button>
+          
+          {isOwnProfile ? (
+            <button
+              className="profile-screen-btn"
+              onClick={async () => { await supabase.auth.signOut(); }}
+              aria-label="Выйти"
+            >
+              <LogoutIcon size={20} />
+            </button>
+          ) : (
+            <div style={{ width: 40 }} /> // Пустая заглушка для выравнивания
+          )}
         </header>
 
         <div
@@ -387,14 +375,13 @@ export default function ProfileScreen({
           onScroll={handleScroll}
         >
           <div className="profile-hero" ref={heroRef}>
-            {/* состояние 2: фото на всю ширину */}
             <div className="profile-cover" aria-hidden="true">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="profile-cover-img" draggable={false} />
               ) : (
                 <div
                   className="profile-cover-fallback"
-                  style={{ background: colorFromString(user?.id || displayName) }}
+                  style={{ background: colorFromString(profileId || displayName) }}
                 >
                   <span>{initialFromString(displayName)}</span>
                 </div>
@@ -409,10 +396,9 @@ export default function ProfileScreen({
               </div>
             </div>
 
-            {/* состояние 1 (и 0 при скролле): круглая аватарка */}
             <div className="profile-hero-normal">
               <div className="profile-hero-avatar">
-                <Avatar url={avatarUrl} name={displayName} seed={user?.id} size={96} />
+                <Avatar url={avatarUrl} name={displayName} seed={profileId} size={96} />
               </div>
               <div className="profile-hero-info">
                 <div className="profile-hero-name">
@@ -427,9 +413,11 @@ export default function ProfileScreen({
           </div>
 
           <div className="profile-actions">
-            <button className="profile-action" onClick={() => setEditing(true)}>
-              Изменить
-            </button>
+            {isOwnProfile && (
+              <button className="profile-action" onClick={() => setEditing(true)}>
+                Изменить
+              </button>
+            )}
           </div>
 
           <div className="profile-tabs">
@@ -453,12 +441,12 @@ export default function ProfileScreen({
                 publications={posts}
                 currentUser={user}
                 onOpenPost={onOpenPost}
+                onOpenProfile={null} // В чужом профиле не нужно переходить по клику на аву
               />
             </div>
           )}
         </div>
 
-        {/* editing bottom-sheet */}
         {editing && (
           <div className="profile-edit-sheet" ref={editSheetRef}>
             <div
