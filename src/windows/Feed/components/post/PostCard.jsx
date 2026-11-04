@@ -1,7 +1,28 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
+import { useT } from '../../../../lib/i18n';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../../lib/supabaseClient';
 import { getProfile } from '../../../../lib/profilesCache';
+import { FILES_BUCKET } from '../../../../lib/storage';
+import { RichText, toPlainText } from '../../../../lib/richText';
+import { translateText } from '../../../../lib/translate';
+import { useSetting } from '../../../../lib/settings';
+import { HeartFilledIcon } from '../../../../assets/icons/Icons';
+
+// выше этой высоты текст поста сворачивается (≈ 12 строк по 22px)
+const COLLAPSED_HEIGHT = 264;
+
+/* подсветка найденных слов (поиск): акцентный цвет, полупрозрачный, скруглённый */
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// query — строка или список найденных слов (умный поиск подсвечивает слова с опечатками)
+function highlightText(text, query) {
+  const terms = (Array.isArray(query) ? query : [query]).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!terms.length || !text) return text;
+  const re = new RegExp(`(${terms.map(escapeRe).join('|')})`, 'gi');
+  return text.split(re).map((part, i) =>
+    i % 2 === 1 ? <mark key={i} className="search-hl">{part}</mark> : part
+  );
+}
 import PostHeader from './PostHeader';
 import PostMedia from './PostMedia';
 import PostFooter from './PostFooter';
@@ -17,7 +38,9 @@ export default function PostCard({
   readOnly = false,
   onRequireAuth,
   onOpenProfile,
+  highlight = '',
 }) {
+  const t = useT();
   const [views, setViews] = useState(post.views || 0);
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -33,14 +56,40 @@ export default function PostCard({
   const pendingLikeRef = useRef(false);
   const lastLocalRef = useRef(0);
   const mountedRef = useRef(true);
-  const longPressRef = useRef({ timer: null, startX: 0, startY: 0 });
+  // тап и двойной тап: один тап — меню, двойной — лайк
+  const tapRef = useRef({ timer: null, last: 0 });
+  const [bigHeart, setBigHeart] = useState(null);
+  // перевод текста поста
+  const [showTranslate] = useSetting('showTranslate');
+  const [translateTo] = useSetting('translateTo');
+  const [translation, setTranslation] = useState(null); // { text } | 'loading'
   
   // Для трекинга просмотров
   const cardRef = useRef(null);
   const hasTrackedView = useRef(false);
 
   const isAuthor = !!(currentUser && post.user_id === currentUser.id);
-  const hasCaption = !!(post.name && post.name.trim());
+
+  // вложения поста; меняются, если удалить фото/видео из галереи
+  const [files, setFiles] = useState(post.files || []);
+  useEffect(() => { setFiles(post.files || []); }, [post.files]);
+  const plainCaption = toPlainText(post.name || '');
+  const hasCaption = !!plainCaption.trim() || (post.name || '').includes('<blockquote>');
+
+  // «Читать далее» для длинных постов
+  const textRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const check = () => setOverflowing(el.scrollHeight > COLLAPSED_HEIGHT + 22);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [post.name]);
 
   const requireAuth = () => {
     if (onRequireAuth) onRequireAuth();
@@ -65,12 +114,16 @@ export default function PostCard({
             hasTrackedView.current = true;
             
             try {
-              await supabase.rpc('track_views_batch', { 
-                p_post_ids: [post.id], 
-                p_user_id: currentUser.id 
+              // в базе есть функция track_view(p_post_id, p_user_id);
+              // track_views_batch, которая вызывалась раньше, не существует
+              const { error } = await supabase.rpc('track_view', {
+                p_post_id: post.id,
+                p_user_id: currentUser.id,
               });
-              // Оптимистичное обновление интерфейса
-              setViews(v => v + 1); 
+              if (error) throw error;
+              // счётчик обновит realtime (UPDATE repositories); если он не включён —
+              // показываем +1 сразу, не дожидаясь
+              setViews(v => v + 1);
             } catch (e) {
               console.error('Ошибка трекинга просмотра:', e);
             }
@@ -83,10 +136,10 @@ export default function PostCard({
     );
     
     if (cardRef.current) observer.observe(cardRef.current);
-    
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      if (cardRef.current) observer.unobserve(cardRef.current);
+      observer.disconnect();
     };
   }, [post.id, currentUser, readOnly]);
 
@@ -162,16 +215,16 @@ export default function PostCard({
     }
 
     try {
-      if (wasLiked) {
-        await supabase.from('reactions').delete()
-          .eq('repository_id', post.id).eq('user_id', currentUser.id);
-      } else {
-        await supabase.from('reactions').insert({
-          repository_id: post.id,
-          user_id: currentUser.id,
-          emoji: '❤️',
-        });
-      }
+      // supabase-js не бросает исключения, ошибку нужно проверять вручную
+      const { error } = wasLiked
+        ? await supabase.from('reactions').delete()
+            .eq('repository_id', post.id).eq('user_id', currentUser.id)
+        : await supabase.from('reactions').insert({
+            repository_id: post.id,
+            user_id: currentUser.id,
+            emoji: '❤️',
+          });
+      if (error) throw error;
     } catch {
       if (mountedRef.current) {
         setIsLiked(wasLiked);
@@ -188,10 +241,42 @@ export default function PostCard({
     onOpen?.(post);
   };
 
+  /* ---------- тапы: один — меню поста, двойной — лайк (как в Telegram) ---------- */
+  const DOUBLE_TAP_MS = 280;
+
+  const showHeart = (e) => {
+    const r = cardRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setBigHeart({ x: e.clientX - r.left, y: e.clientY - r.top, key: Date.now() });
+    setTimeout(() => setBigHeart(null), 800);
+  };
+
+  /* singleAction — что сделать на одиночный тап (открыть меню или галерею) */
+  const handleTap = (e, singleAction) => {
+    const t = tapRef.current;
+    const now = Date.now();
+    if (t.timer && now - t.last < DOUBLE_TAP_MS) {
+      // второй тап — лайк (двойной тап только ставит лайк, не снимает)
+      clearTimeout(t.timer);
+      t.timer = null;
+      showHeart(e);
+      if (!isLiked) handleLike();
+      return;
+    }
+    t.last = now;
+    clearTimeout(t.timer);
+    t.timer = setTimeout(() => { t.timer = null; singleAction(); }, DOUBLE_TAP_MS);
+  };
+
+  useEffect(() => () => clearTimeout(tapRef.current.timer), []);
+
   const handleCardClick = (e) => {
-    if (!readOnly) return;
-    if (e.target.closest('button, a, input, textarea, [data-no-redirect]')) return;
-    requireAuth();
+    if (e.target.closest('button, a, input, textarea, [data-no-redirect], .post-header, .post-media')) return;
+    if (readOnly) { requireAuth(); return; }
+    // выделяли текст мышью — это не тап
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && cardRef.current?.contains(sel.anchorNode)) return;
+    handleTap(e, () => setMenuOpen(true));
   };
 
   const handleContextMenu = (e) => {
@@ -204,35 +289,16 @@ export default function PostCard({
     setMenuOpen(true);
   };
 
-  const handlePointerDown = (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (readOnly) return;
-    if (e.target.closest('a') || e.target.closest('.post-header')) return; 
-
-    longPressRef.current.startX = e.clientX;
-    longPressRef.current.startY = e.clientY;
-    longPressRef.current.timer = setTimeout(() => {
-      longPressRef.current.timer = null;
-      setMenuOpen(true);
-    }, 500);
-  };
-
-  const handlePointerMove = (e) => {
-    if (readOnly) return;
-    const s = longPressRef.current;
-    if (!s.timer) return;
-    if (Math.abs(e.clientX - s.startX) > 10 || Math.abs(e.clientY - s.startY) > 10) {
-      clearTimeout(s.timer);
-      s.timer = null;
-    }
-  };
-
-  const handlePointerEnd = () => {
-    if (readOnly) return;
-    const s = longPressRef.current;
-    if (s.timer) {
-      clearTimeout(s.timer);
-      s.timer = null;
+  /* ---------- перевод ---------- */
+  const handleTranslate = async () => {
+    if (translation && translation !== 'loading') { setTranslation(null); return; }
+    setTranslation('loading');
+    try {
+      const res = await translateText(plainCaption, translateTo);
+      setTranslation(res);
+    } catch (e) {
+      setTranslation(null);
+      alert(t('post.translateFail') + e.message);
     }
   };
 
@@ -241,8 +307,8 @@ export default function PostCard({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: post.name || 'Пост в «связь»',
-          text: post.name || '',
+          title: plainCaption || t('post.shareTitle'),
+          text: plainCaption,
           url: postUrl,
         });
         return;
@@ -264,10 +330,10 @@ export default function PostCard({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(post.name || '');
+      await navigator.clipboard.writeText(plainCaption);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = post.name || '';
+      ta.value = plainCaption;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -275,25 +341,67 @@ export default function PostCard({
     }
   };
 
+  // пути файлов в хранилище: и сами файлы, и их сверхсжатые копии (thumb)
+  const storagePaths = (list) => {
+    const marker = `/${FILES_BUCKET}/`;
+    return (list || [])
+      .flatMap((f) => [f.url, f.thumb])
+      .map((url) => {
+        const idx = (url || '').indexOf(marker);
+        return idx >= 0 ? decodeURIComponent(url.slice(idx + marker.length)) : null;
+      })
+      .filter(Boolean);
+  };
+
+  const deletePost = async () => {
+    // Сначала удаляем пост: если не получится, файлы останутся целыми
+    const { error } = await supabase.from('repositories').delete().eq('id', post.id);
+    if (error) throw error;
+    const paths = storagePaths(files);
+    if (paths.length) await supabase.storage.from(FILES_BUCKET).remove(paths);
+  };
+
   const handleDelete = async () => {
-    if (!window.confirm('Удалить пост? Это действие необратимо.')) return;
+    if (!window.confirm(t('post.confirmDelete'))) return;
     try {
-      const marker = '/repopart-files/';
-      const paths = (post.files || [])
-        .map((f) => {
-          const idx = (f.url || '').indexOf(marker);
-          return idx >= 0 ? f.url.slice(idx + marker.length) : null;
-        })
-        .filter(Boolean);
-
-      if (paths.length) {
-        await supabase.storage.from('repopart-files').remove(paths);
-      }
-
-      const { error } = await supabase.from('repositories').delete().eq('id', post.id);
-      if (error) throw error;
+      await deletePost();
     } catch (e) {
-      alert('Ошибка удаления: ' + e.message);
+      alert(t('post.deleteFail') + e.message);
+    }
+  };
+
+  /* ---------- из галереи: поделиться и удалить одно фото/видео ---------- */
+  const handleShareFile = async (file) => {
+    const url = file?.url;
+    if (!url) return;
+    if (navigator.share) {
+      try { await navigator.share({ url, title: plainCaption || t('post.shareTitle') }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(url); alert(t('post.linkCopied')); } catch { /* нет доступа */ }
+  };
+
+  const handleDeleteFile = async (file) => {
+    const rest = files.filter((f) => f.url !== file.url);
+    const lastOne = rest.length === 0 && !hasCaption;
+    const question = lastOne
+      ? t('post.confirmDeleteLast')
+      : t('post.confirmDeleteFile');
+    if (!window.confirm(question)) return false;
+    try {
+      if (lastOne) {
+        await deletePost();
+      } else {
+        const { error } = await supabase.from('repositories').update({ files: rest }).eq('id', post.id);
+        if (error) throw error;
+        const paths = storagePaths([file]);
+        if (paths.length) await supabase.storage.from(FILES_BUCKET).remove(paths);
+        setFiles(rest);
+      }
+      return true;
+    } catch (e) {
+      alert(t('post.deleteFileFail') + e.message);
+      return false;
     }
   };
 
@@ -346,7 +454,7 @@ export default function PostCard({
           </a>
         );
       }
-      return part;
+      return <React.Fragment key={i}>{highlightText(part, highlight)}</React.Fragment>;
     });
   };
 
@@ -357,11 +465,12 @@ export default function PostCard({
         className={`post-card ${readOnly ? 'is-preview' : ''}`}
         onClick={handleCardClick}
         onContextMenu={handleContextMenu}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerEnd}
-        onPointerCancel={handlePointerEnd}
       >
+        {bigHeart && (
+          <span key={bigHeart.key} className="post-big-heart" style={{ left: bigHeart.x, top: bigHeart.y }} aria-hidden>
+            <HeartFilledIcon size={84} />
+          </span>
+        )}
         <PostHeader
           author={author}
           userId={post.user_id}
@@ -371,16 +480,51 @@ export default function PostCard({
           onOpenProfile={onOpenProfile}
         />
 
-        {post.files?.length > 0 && (
+        {files.length > 0 && (
           <PostMedia
-            files={post.files}
-            postName={post.name}
-            onPreview={readOnly ? requireAuth : (files, index) => setPreview({ files, index })}
+            files={files}
+            postName={plainCaption}
+            onPreview={readOnly
+              ? requireAuth
+              // по фото: один тап — галерея, двойной — лайк
+              : (file, index, all, e) => (e ? handleTap(e, () => setPreview({ files: all, index })) : setPreview({ files: all, index }))}
             onOpenHtml={readOnly ? requireAuth : (file) => setHtmlPreview(file)}
           />
         )}
 
-        {hasCaption && <div className="post-text">{renderTextWithLinks(post.name)}</div>}
+        {hasCaption && (
+          <>
+            <div
+              ref={textRef}
+              className={`post-text ${overflowing && !expanded ? 'is-collapsed' : ''}`}
+              style={overflowing && !expanded ? { maxHeight: COLLAPSED_HEIGHT } : undefined}
+            >
+              {translation && translation !== 'loading'
+                ? renderTextWithLinks(translation.text)
+                : <RichText text={post.name} renderText={renderTextWithLinks} />}
+            </div>
+            {translation && (
+              <button
+                type="button"
+                className="post-translate-toggle"
+                data-no-redirect
+                onClick={(e) => { e.stopPropagation(); if (translation !== 'loading') setTranslation(null); }}
+              >
+                {translation === 'loading' ? t('post.translating') : t('post.showOriginal')}
+              </button>
+            )}
+            {overflowing && !expanded && (
+              <button
+                type="button"
+                className="post-read-more"
+                data-no-redirect
+                onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+              >
+                {t('post.readMore')}
+              </button>
+            )}
+          </>
+        )}
 
         <PostFooter
           views={views}
@@ -388,7 +532,7 @@ export default function PostCard({
           isLiked={isLiked}
           burst={burst}
           onLike={handleLike}
-          files={post.files}
+          files={files}
           postId={post.id}
           onOpenComments={handleOpenComments}
           hasUnreadComments={hasUnreadComments}
@@ -401,6 +545,8 @@ export default function PostCard({
           onClose={() => setMenuOpen(false)}
           onShare={handleShare}
           onCopy={handleCopy}
+          onTranslate={showTranslate && hasCaption ? handleTranslate : undefined}
+          translated={!!translation && translation !== 'loading'}
           onDelete={handleDelete}
           isAuthor={isAuthor}
           hasCaption={hasCaption}
@@ -408,10 +554,12 @@ export default function PostCard({
       )}
 
       {preview && !readOnly && createPortal(
-        <Lightbox 
-          files={preview.files} 
-          initialIndex={preview.index} 
-          onClose={() => setPreview(null)} 
+        <Lightbox
+          files={preview.files}
+          initialIndex={preview.index}
+          onClose={() => setPreview(null)}
+          onShare={handleShareFile}
+          onDelete={isAuthor ? handleDeleteFile : undefined}
         />,
         document.body
       )}

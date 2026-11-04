@@ -1,10 +1,13 @@
+/* Боковое меню: стеклянная панель в стиле iOS */
+
 .side-menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.3);
   opacity: 0;
   pointer-events: none;
   z-index: 90;
+  transition: opacity 0.25s ease;
 }
 
 .side-menu-overlay.is-open {
@@ -14,17 +17,16 @@
 
 .side-menu {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 340px;
-  max-width: 85vw;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border-color);
-  border-radius: 0 24px 24px 0;
-  transform: translateX(-100%);
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: 300px;
+  max-width: calc(85vw - 12px);
+  /* стекло и скругление: styles/glass.css */
+  transform: translateX(calc(-100% - 16px));
+  transition: transform 0.35s cubic-bezier(.32, .72, 0, 1);
   z-index: 95;
-  padding: 32px 24px;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -38,25 +40,39 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
 .side-menu-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 10px 8px;
   background: transparent;
   border: none;
-  border-radius: 24px;
+  border-radius: 12px;
   color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 500;
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  line-height: 20px;
+  font-weight: var(--font-regular);
+  letter-spacing: var(--text-body-ls);
   cursor: pointer;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.side-menu-item:hover,
+.side-menu-item:active {
+  background: var(--fill-secondary);
 }
 
 .side-menu-icon {
-  font-size: 1.2rem;
+  width: 28px;
+  font-size: 20px;
+  line-height: 23px;
+  text-align: center;
+  flex-shrink: 0;
 }

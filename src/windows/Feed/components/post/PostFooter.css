@@ -22,7 +22,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--text-subheadline-ls);
   font-weight: var(--font-bold);
   color: var(--text-primary);
   background: transparent;
@@ -49,11 +50,11 @@
 }
 
 .like-btn.is-liked {
-  color: #ef4444; 
+  color: var(--accent-red);
 }
 
 .like-btn.is-liked .like-icon {
-  color: #ef4444;
+  color: var(--accent-red);
 }
 
 .like-icon-wrapper {
@@ -74,12 +75,13 @@
   width: 100%;
   background: transparent;
   border: none;
-  border-top: 1px solid var(--border-color); 
+  border-top: 1px solid var(--separator);
   border-radius: 0;
   padding: 12px 4px;
-  color: var(--text-primary); 
+  color: var(--text-primary);
   font-family: var(--font-main);
-  font-size: 0.95rem;
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--text-subheadline-ls);
   font-weight: var(--font-bold);
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -115,7 +117,7 @@
 .post-comments-right {
   display: flex;
   align-items: center;
-  color: var(--text-primary); 
+  color: var(--label-tertiary);         /* шеврон как в списках iOS */
 }
 
 /* Аватарки комментаторов */

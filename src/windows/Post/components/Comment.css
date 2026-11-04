@@ -116,8 +116,8 @@ button.comment-author:disabled {
 }
 
 .comment-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+  color: var(--accent-red);
   opacity: 1;
 }
 

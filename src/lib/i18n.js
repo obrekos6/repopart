@@ -1,0 +1,414 @@
+/*
+ * Перевод интерфейса. Язык выбирается в Настройки → Язык → Язык интерфейса.
+ *   const t = useT();   t('nav.feed')   t('post.comments', { n: 5 })
+ * Ключи с формами множественного числа — массивы: ru [1, 2–4, 5+], en [1, другое].
+ */
+import { useSetting, getSetting } from './settings';
+
+export const UI_LANGS = [
+  ['ru', 'Русский', 'Russian'],
+  ['en', 'English', 'English'],
+];
+
+const DICT = {
+  ru: {
+    'nav.feed': 'Лента',
+    'nav.profile': 'Профиль',
+    'nav.settings': 'Настройки',
+    'tab.forYou': 'Для вас',
+    'tab.fresh': 'Свежее',
+    'tab.top': 'Топ',
+
+    'top.search': 'Поиск',
+    'top.searchPosts': 'Поиск по постам',
+    'top.closeSearch': 'Закрыть поиск',
+    'top.notifications': 'Уведомления',
+    'top.create': 'Создать',
+    'top.login': 'Войти',
+    'top.refresh': 'Обновить ленту',
+
+    'feed.loading': 'Загрузка...',
+    'feed.refreshing': 'Обновляем рекомендации...',
+    'feed.emptyTitle': 'Тут тихо...',
+    'feed.emptySub': 'Загляните позже',
+
+    'landing.purpose': 'крутая соц сеть сп союза регистрируйся и стань крутым олдом!! кидай мемы, слушай музыку, лови вайб😎',
+    'landing.toFeed': 'Перейти в ленту',
+    'landing.signIn': 'Войдите, чтобы увидеть больше',
+    'landing.privacy': 'Политика конфиденциальности',
+    'landing.terms': 'Условия использования',
+
+    'search.hint': 'Начните вводить текст, чтобы найти посты',
+    'search.loading': 'Ищем…',
+    'search.none': 'Ничего не найдено',
+    'search.tryOther': 'Попробуйте другие слова',
+
+    'post.readMore': 'Читать далее',
+    'post.showOriginal': 'Показать оригинал',
+    'post.translating': 'Переводим…',
+    'post.translateFail': 'Не удалось перевести: ',
+    'post.shareTitle': 'Пост в «связь»',
+    'post.linkCopied': 'Ссылка скопирована',
+    'post.confirmDelete': 'Удалить пост? Это действие необратимо.',
+    'post.deleteFail': 'Ошибка удаления: ',
+    'post.confirmDeleteLast': 'Это последнее вложение, а текста в посте нет. Удалить весь пост?',
+    'post.confirmDeleteFile': 'Удалить это вложение из поста?',
+    'post.deleteFileFail': 'Не удалось удалить: ',
+    'post.comment': 'Прокомментировать',
+    'post.comments': ['{n} комментарий', '{n} комментария', '{n} комментариев'],
+    'post.download': 'Скачать',
+    'post.like': 'Нравится',
+
+    'menu.share': 'Поделиться',
+    'menu.copy': 'Скопировать',
+    'menu.translate': 'Перевести',
+    'menu.showOriginal': 'Показать оригинал',
+    'menu.delete': 'Удалить',
+
+    'time.now': 'только что',
+    'time.sec': ['{n} секунду назад', '{n} секунды назад', '{n} секунд назад'],
+    'time.min': ['{n} минуту назад', '{n} минуты назад', '{n} минут назад'],
+    'time.hour': ['{n} час назад', '{n} часа назад', '{n} часов назад'],
+    'time.day': ['{n} день назад', '{n} дня назад', '{n} дней назад'],
+    'time.month': ['{n} месяц назад', '{n} месяца назад', '{n} месяцев назад'],
+    'time.year': ['{n} год назад', '{n} года назад', '{n} лет назад'],
+
+    'comments.loading': 'Загрузка…',
+    'comments.empty': 'Пока нет комментариев',
+    'comments.placeholder': 'Оставьте комментарий…',
+    'comments.send': 'Отправить',
+    'comments.sendFail': 'Не удалось отправить: ',
+    'comments.deleteFail': 'Не удалось удалить: ',
+    'comments.confirmDelete': 'Удалить комментарий?',
+    'comments.openProfile': 'Открыть профиль',
+    'comments.delete': 'Удалить',
+
+    'notif.title': 'Уведомления',
+    'notif.empty': 'Уведомлений пока нет',
+    'notif.emptySub': 'Здесь появятся лайки и комментарии к вашим постам',
+
+    'common.back': 'Назад',
+    'common.close': 'Закрыть',
+    'common.loading': 'Загрузка',
+    'common.more': 'Ещё',
+
+    'viewer.title': 'Просмотр',
+    'viewer.pause': 'Пауза',
+    'viewer.play': 'Играть',
+    'viewer.share': 'Поделиться',
+    'viewer.delete': 'Удалить',
+    'viewer.download': 'Скачать',
+
+    'profile.edit': 'Изменить',
+    'profile.username': 'имя пользователя',
+    'profile.joined': 'в «связи» с',
+    'profile.posts': 'Посты',
+    'profile.publications': ['{n} публикация', '{n} публикации', '{n} публикаций'],
+    'profile.loading': 'Загрузка…',
+    'profile.empty': 'Публикаций пока нет…',
+    'profile.emptySub': 'Опубликуйте фото или видео в своём профиле',
+    'profile.openPhoto': 'Открыть фото',
+    'profile.closePhoto': 'Свернуть фото',
+    'profile.logout': 'Выйти',
+    'profile.fill': 'Заполните профиль',
+    'profile.editTitle': 'Редактировать профиль',
+    'profile.done': 'Готово',
+    'profile.save': 'Сохранить',
+
+    'st.title': 'Настройки',
+    'st.appearance': 'Оформление',
+    'st.appearanceSub': 'Размер текста, жидкое стекло',
+    'st.appearanceSubOn': 'Размер текста, жидкое стекло — вкл.',
+    'st.notifications': 'Уведомления',
+    'st.notificationsSub': 'Лайки и комментарии к вашим постам',
+    'st.devices': 'Устройства',
+    'st.devicesSub': 'Это устройство, выход на других',
+    'st.language': 'Язык',
+    'st.languageSub': 'Интерфейс: {ui} · перевод: {tr}',
+    'st.logout': 'Выйти из аккаунта',
+    'st.version': 'связь для Web v{v}',
+    'st.profileFallback': 'Профиль',
+
+    'st.textSize': 'Размер текста постов',
+    'st.textPreview': 'Так будет выглядеть текст постов в ленте 👋',
+    'st.effects': 'Эффекты',
+    'st.glass': 'Жидкое стекло',
+    'st.glassOn': 'Включено',
+    'st.glassOff': 'Выключено',
+    'st.glassUnsupported': 'Не поддерживается этим браузером',
+    'st.glassNote': 'Жидкое стекло преломляет фон под кнопками и панелями, как в iOS. На слабых устройствах оно может тормозить и работать нестабильно — тогда выключите его, останется обычное размытое стекло.',
+    'st.glassNoteUnsupported': 'Жидкое стекло работает только в браузерах на Chromium (Chrome, Edge, Яндекс.Браузер, Android). В этом браузере используется обычное размытое стекло.',
+    'st.theme': 'Тема',
+    'st.themeAuto': 'Как на устройстве',
+    'st.themeNote': 'Тема меняется вместе с темой устройства: светлая днём, тёмная ночью.',
+
+    'st.thisDevice': 'Это устройство',
+    'st.online': 'в сети',
+    'st.endOthers': 'Завершить все другие сеансы',
+    'st.endOthersNote': 'Выйти на всех устройствах, кроме этого.',
+    'st.endOthersConfirm': 'Выйти из аккаунта на всех других устройствах?',
+    'st.endOthersDone': 'Готово: на других устройствах выполнен выход',
+    'st.endOthersFail': 'Не получилось: ',
+    'st.browser': 'Браузер',
+    'st.yandex': 'Яндекс.Браузер',
+
+    'st.translateSection': 'Перевод постов',
+    'st.showTranslate': 'Показывать кнопку «Перевести»',
+    'st.translateNote': 'Кнопка «Перевести» появится в меню по нажатию на пост с текстом. Для перевода текст поста отправляется в Google Переводчик; ники, ссылки и название «связь» не переводятся.',
+    'st.translateTo': 'Переводить на',
+    'st.uiLang': 'Язык интерфейса',
+    'st.uiLangNote': 'Пока доступны русский и английский.',
+
+    'ed.newPost': 'Новый пост',
+    'ed.toFeed': 'в ленту «связь»',
+    'ed.publishing': 'Публикация…',
+    'ed.files': ['{n} файл', '{n} файла', '{n} файлов'],
+    'ed.chars': ['{n} символ', '{n} символа', '{n} символов'],
+    'ed.placeholder': 'Напишите что-нибудь…',
+    'ed.text': 'Текст поста',
+    'ed.attach': 'Прикрепить файл',
+    'ed.attachMax': 'Прикрепить файл (до {size})',
+    'ed.hint': 'Выделите текст и нажмите правой кнопкой, чтобы оформить',
+    'ed.hintTouch': 'Выделите текст и удерживайте, чтобы оформить',
+    'ed.publish': 'Опубликовать',
+    'ed.publishKey': 'Опубликовать (Ctrl+Enter)',
+    'ed.close': 'Закрыть',
+    'ed.undo': 'Отменить',
+    'ed.redo': 'Повторить',
+    'ed.cut': 'Вырезать',
+    'ed.copy': 'Копировать',
+    'ed.paste': 'Вставить',
+    'ed.delete': 'Удалить',
+    'ed.format': 'Форматирование',
+    'ed.selectAll': 'Выбрать всё',
+    'ed.pasteFail': 'Браузер не дал доступ к буферу обмена — вставьте через Ctrl+V',
+    'ed.fileTooBig': 'Файл «{name}» больше {size}',
+    'ed.error': 'Ошибка: ',
+    'ed.removeFile': 'Удалить',
+    'fmt.b': 'Жирный',
+    'fmt.i': 'Курсив',
+    'fmt.u': 'Подчёркнутый',
+    'fmt.s': 'Зачёркнутый',
+    'fmt.blockquote': 'Цитата',
+    'fmt.code': 'Моноширинный',
+
+    'audio.pause': 'Пауза',
+    'audio.play': 'Воспроизвести',
+  },
+
+  en: {
+    'nav.feed': 'Feed',
+    'nav.profile': 'Profile',
+    'nav.settings': 'Settings',
+    'tab.forYou': 'For you',
+    'tab.fresh': 'Latest',
+    'tab.top': 'Top',
+
+    'top.search': 'Search',
+    'top.searchPosts': 'Search posts',
+    'top.closeSearch': 'Close search',
+    'top.notifications': 'Notifications',
+    'top.create': 'Create',
+    'top.login': 'Sign in',
+    'top.refresh': 'Refresh feed',
+
+    'feed.loading': 'Loading...',
+    'feed.refreshing': 'Refreshing recommendations...',
+    'feed.emptyTitle': 'It’s quiet here...',
+    'feed.emptySub': 'Check back later',
+
+    'landing.purpose': 'the coolest social network of SP Union — sign up and become a legend!! post memes, listen to music, catch the vibe😎',
+    'landing.toFeed': 'Go to feed',
+    'landing.signIn': 'Sign in to see more',
+    'landing.privacy': 'Privacy Policy',
+    'landing.terms': 'Terms of Use',
+
+    'search.hint': 'Start typing to find posts',
+    'search.loading': 'Searching…',
+    'search.none': 'Nothing found',
+    'search.tryOther': 'Try other words',
+
+    'post.readMore': 'Read more',
+    'post.showOriginal': 'Show original',
+    'post.translating': 'Translating…',
+    'post.translateFail': 'Couldn’t translate: ',
+    'post.shareTitle': 'Post on «связь»',
+    'post.linkCopied': 'Link copied',
+    'post.confirmDelete': 'Delete this post? This can’t be undone.',
+    'post.deleteFail': 'Couldn’t delete: ',
+    'post.confirmDeleteLast': 'This is the last attachment and the post has no text. Delete the whole post?',
+    'post.confirmDeleteFile': 'Remove this attachment from the post?',
+    'post.deleteFileFail': 'Couldn’t delete: ',
+    'post.comment': 'Comment',
+    'post.comments': ['{n} comment', '{n} comments'],
+    'post.download': 'Download',
+    'post.like': 'Like',
+
+    'menu.share': 'Share',
+    'menu.copy': 'Copy',
+    'menu.translate': 'Translate',
+    'menu.showOriginal': 'Show original',
+    'menu.delete': 'Delete',
+
+    'time.now': 'just now',
+    'time.sec': ['{n} second ago', '{n} seconds ago'],
+    'time.min': ['{n} minute ago', '{n} minutes ago'],
+    'time.hour': ['{n} hour ago', '{n} hours ago'],
+    'time.day': ['{n} day ago', '{n} days ago'],
+    'time.month': ['{n} month ago', '{n} months ago'],
+    'time.year': ['{n} year ago', '{n} years ago'],
+
+    'comments.loading': 'Loading…',
+    'comments.empty': 'No comments yet',
+    'comments.placeholder': 'Leave a comment…',
+    'comments.send': 'Send',
+    'comments.sendFail': 'Couldn’t send: ',
+    'comments.deleteFail': 'Couldn’t delete: ',
+    'comments.confirmDelete': 'Delete comment?',
+    'comments.openProfile': 'Open profile of',
+    'comments.delete': 'Delete',
+
+    'notif.title': 'Notifications',
+    'notif.empty': 'No notifications yet',
+    'notif.emptySub': 'Likes and comments on your posts will appear here',
+
+    'common.back': 'Back',
+    'common.close': 'Close',
+    'common.loading': 'Loading',
+    'common.more': 'More',
+
+    'viewer.title': 'Viewer',
+    'viewer.pause': 'Pause',
+    'viewer.play': 'Play',
+    'viewer.share': 'Share',
+    'viewer.delete': 'Delete',
+    'viewer.download': 'Download',
+
+    'profile.edit': 'Edit',
+    'profile.username': 'username',
+    'profile.joined': 'on «связь» since',
+    'profile.posts': 'Posts',
+    'profile.publications': ['{n} post', '{n} posts'],
+    'profile.loading': 'Loading…',
+    'profile.empty': 'No posts yet…',
+    'profile.emptySub': 'Share a photo or video on your profile',
+    'profile.openPhoto': 'Open photo',
+    'profile.closePhoto': 'Collapse photo',
+    'profile.logout': 'Log out',
+    'profile.fill': 'Complete your profile',
+    'profile.editTitle': 'Edit profile',
+    'profile.done': 'Done',
+    'profile.save': 'Save',
+
+    'st.title': 'Settings',
+    'st.appearance': 'Appearance',
+    'st.appearanceSub': 'Text size, liquid glass',
+    'st.appearanceSubOn': 'Text size, liquid glass — on',
+    'st.notifications': 'Notifications',
+    'st.notificationsSub': 'Likes and comments on your posts',
+    'st.devices': 'Devices',
+    'st.devicesSub': 'This device, sign out elsewhere',
+    'st.language': 'Language',
+    'st.languageSub': 'Interface: {ui} · translation: {tr}',
+    'st.logout': 'Log out',
+    'st.version': 'связь for Web v{v}',
+    'st.profileFallback': 'Profile',
+
+    'st.textSize': 'Post text size',
+    'st.textPreview': 'This is how post text will look in the feed 👋',
+    'st.effects': 'Effects',
+    'st.glass': 'Liquid glass',
+    'st.glassOn': 'On',
+    'st.glassOff': 'Off',
+    'st.glassUnsupported': 'Not supported by this browser',
+    'st.glassNote': 'Liquid glass refracts the background behind buttons and panels, like in iOS. On slower devices it may lag or be unstable — turn it off and regular frosted glass will be used instead.',
+    'st.glassNoteUnsupported': 'Liquid glass only works in Chromium browsers (Chrome, Edge, Yandex Browser, Android). This browser uses regular frosted glass.',
+    'st.theme': 'Theme',
+    'st.themeAuto': 'System',
+    'st.themeNote': 'The theme follows your device: light during the day, dark at night.',
+
+    'st.thisDevice': 'This device',
+    'st.online': 'online',
+    'st.endOthers': 'Terminate all other sessions',
+    'st.endOthersNote': 'Log out on all devices except this one.',
+    'st.endOthersConfirm': 'Log out on all other devices?',
+    'st.endOthersDone': 'Done: logged out on other devices',
+    'st.endOthersFail': 'Failed: ',
+    'st.browser': 'Browser',
+    'st.yandex': 'Yandex Browser',
+
+    'st.translateSection': 'Post translation',
+    'st.showTranslate': 'Show “Translate” button',
+    'st.translateNote': 'The “Translate” button appears in the menu when you tap a post with text. The post text is sent to Google Translate; usernames, links and the name «связь» are not translated.',
+    'st.translateTo': 'Translate to',
+    'st.uiLang': 'Interface language',
+    'st.uiLangNote': 'Russian and English are available for now.',
+
+    'ed.newPost': 'New post',
+    'ed.toFeed': 'to the «связь» feed',
+    'ed.publishing': 'Publishing…',
+    'ed.files': ['{n} file', '{n} files'],
+    'ed.chars': ['{n} character', '{n} characters'],
+    'ed.placeholder': 'Write something…',
+    'ed.text': 'Post text',
+    'ed.attach': 'Attach file',
+    'ed.attachMax': 'Attach file (up to {size})',
+    'ed.hint': 'Select text and right-click to format it',
+    'ed.hintTouch': 'Select text and hold to format it',
+    'ed.publish': 'Publish',
+    'ed.publishKey': 'Publish (Ctrl+Enter)',
+    'ed.close': 'Close',
+    'ed.undo': 'Undo',
+    'ed.redo': 'Redo',
+    'ed.cut': 'Cut',
+    'ed.copy': 'Copy',
+    'ed.paste': 'Paste',
+    'ed.delete': 'Delete',
+    'ed.format': 'Formatting',
+    'ed.selectAll': 'Select all',
+    'ed.pasteFail': 'The browser blocked clipboard access — paste with Ctrl+V',
+    'ed.fileTooBig': 'File “{name}” is larger than {size}',
+    'ed.error': 'Error: ',
+    'ed.removeFile': 'Remove',
+    'fmt.b': 'Bold',
+    'fmt.i': 'Italic',
+    'fmt.u': 'Underline',
+    'fmt.s': 'Strikethrough',
+    'fmt.blockquote': 'Quote',
+    'fmt.code': 'Monospace',
+
+    'audio.pause': 'Pause',
+    'audio.play': 'Play',
+  },
+};
+
+const pluralIndex = (lang, n) => {
+  if (lang === 'ru') {
+    const d = n % 10, dd = n % 100;
+    if (dd >= 11 && dd <= 14) return 2;
+    if (d === 1) return 0;
+    if (d >= 2 && d <= 4) return 1;
+    return 2;
+  }
+  return n === 1 ? 0 : 1;
+};
+
+export function translate(lang, key, vars = {}) {
+  const dict = DICT[lang] || DICT.ru;
+  let v = dict[key] ?? DICT.ru[key] ?? key;
+  if (Array.isArray(v)) v = v[pluralIndex(lang, Number(vars.n) || 0)] ?? v[v.length - 1];
+  return v.replace(/\{(\w+)\}/g, (m, k) => (vars[k] ?? m));
+}
+
+/* для кода вне компонентов (например, formatTime) */
+export const t = (key, vars) => translate(getSetting('lang') || 'ru', key, vars);
+
+/* в компонентах: const t = useT(); — при смене языка компонент перерисуется */
+export function useT() {
+  const [lang] = useSetting('lang');
+  return (key, vars) => translate(lang || 'ru', key, vars);
+}
+
+export function useLang() {
+  return useSetting('lang')[0] || 'ru';
+}

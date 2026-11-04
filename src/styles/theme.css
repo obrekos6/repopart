@@ -1,38 +1,63 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Шрифты */
+  /* Шрифты: на сайте Roboto (системный шрифт — для будущих приложений) */
   --font-main: 'Roboto', sans-serif;
   --font-logo: 'Roboto', sans-serif;
   --font-nickname: 'Roboto', sans-serif;
 
-  /* Жирность шрифта */
+  /* Жирность шрифта (у Roboto есть 400 / 500 / 600 / 700) */
   --font-regular: 400;
-  --font-bold: 500;
-  --font-heavy: 600;
-  --font-black: 700;
+  --font-bold: 500;    /* Medium */
+  --font-heavy: 600;   /* Semibold */
+  --font-black: 700;   /* Bold */
+
+  /* Типографика iOS (Figma: Telegram iOS UI Kit) */
+  --text-body: 17px;          /* Body / Headline: 17/22, -0.43 */
+  --text-body-lh: 22px;
+  --text-body-ls: 0;            /* у Roboto без сжатия */
+  --text-subheadline: 15px;   /* Subheadline: 15/20, -0.23 */
+  --text-subheadline-lh: 20px;
+  --text-subheadline-ls: 0;
+  --text-footnote: 13px;      /* Footnote: 13/18, -0.08 */
+  --text-footnote-lh: 18px;
+  --text-footnote-ls: 0;
 
   /* Скругления (Border Radius) */
   --radius-normal: 24px;
   --radius-medium: 16px;
   --radius-small: 4px;
   --radius-pill: 999px;
+  --radius-sheet: 34px;       /* меню и шторки (Figma: sheet/iphone/top-radius) */
 
   /* ===== Тёмная тема (по умолчанию) ===== */
-  /* Фоны и текст — как были раньше (в Figma для тёмной темы их нет) */
-  --bg-primary: rgb(0, 0, 0);
-  --bg-card: rgb(10, 10, 10);
-  --bg-post: rgb(22, 22, 24);
-  --text-primary: rgb(245, 245, 245);
-  --text-secondary: rgb(107, 106, 107);
-  --bg-search: rgb(20, 20, 20);
-  --border-color: rgba(255, 255, 255, 0.12);
+  --bg-primary: #000000;
+  --bg-card: #1C1C1E;         /* iOS Secondary System Background */
+  --bg-post: #1C1C1E;
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --bg-search: rgba(118, 118, 128, 0.24);
+  --border-color: rgba(84, 84, 88, 0.65);   /* iOS Separator */
+  --separator: rgba(84, 84, 88, 0.65);
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   --logo-color: #fff;
 
   /* Labels / Grays */
-  --label-tertiary: rgba(235, 235, 245, 0.3); /* придумано, в Figma нет */
+  --label-tertiary: rgba(235, 235, 245, 0.3);
   --gray: #8E8E93;
+  --fill-primary: rgba(120, 120, 128, 0.36);
+  --fill-secondary: rgba(120, 120, 128, 0.32);
+
+  /* Материал «стекло» (Liquid Glass) */
+  --glass-bg: rgba(40, 40, 44, 0.55);
+  --glass-filter: blur(14px) saturate(180%);
+  --glass-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.14),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.05);
+  --glass-text: #F5F5F5;
+  --glass-menu-bg: rgba(37, 37, 40, 0.72);
+  --glass-selection: rgba(255, 255, 255, 0.12);
 
   /* Акценты — тёмная тема (Figma) */
   --accent-blue: #0091FF;
@@ -56,19 +81,32 @@
 @media (prefers-color-scheme: light) {
   :root {
     /* Backgrounds (Grouped) */
-    --bg-primary: #F2F2F7;   /* Primary: фон экрана */
-    --bg-card: #FFFFFF;      /* Secondary: карточки и группы */
-    --bg-post: #FFFFFF;      /* посты — как карточки на сером фоне */
+    --bg-primary: #F2F2F7;   /* фон экрана */
+    --bg-card: #FFFFFF;      /* карточки и группы */
+    --bg-post: #FFFFFF;
 
     /* Labels */
     --text-primary: #000000;
     --text-secondary: rgba(60, 60, 67, 0.6);
     --label-tertiary: rgba(60, 60, 67, 0.3);
 
-    --bg-search: rgba(118, 118, 128, 0.12); /* придумано, в Figma нет */
-    --border-color: rgba(0, 0, 0, 0.1);
+    --bg-search: rgba(120, 120, 128, 0.16);   /* Fills/Secondary */
+    --border-color: #E6E6E6;                  /* Separators/Vibrant */
+    --separator: #E6E6E6;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     --logo-color: #000;
+    --fill-primary: rgba(120, 120, 120, 0.2);
+    --fill-secondary: rgba(120, 120, 128, 0.16);
+
+    /* Стекло — светлая тема (Figma: Fill + Shadow) */
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.12),
+      inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+      inset -1px -1px 0 rgba(255, 255, 255, 0.3);
+    --glass-text: #1A1A1A;                    /* Labels - Vibrant - Controls/Primary */
+    --glass-menu-bg: rgba(245, 245, 245, 0.72);
+    --glass-selection: #EDEDED;               /* Fills - Vibrant/Tertiary */
 
     /* Акценты — светлая тема (Figma) */
     --accent-blue: #0088FF;

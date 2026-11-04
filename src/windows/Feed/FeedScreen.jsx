@@ -1,42 +1,44 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useT } from '../../lib/i18n';
 import { supabase } from '../../lib/supabaseClient';
 import Logo from '../../assets/icons/Logo';
-import { LogoutIcon, PlusIcon } from '../../assets/icons/Icons';
-import SideMenu from './components/layout/SideMenu';
+import { PlusIcon, LogoutIcon, BellIcon, FeedIcon, FeedOutlineIcon, SettingsIcon, SettingsFilledIcon, UserIcon } from '../../assets/icons/Icons';
+import { getProfile } from '../../lib/profilesCache';
+import TabBar from './components/layout/TabBar';
+import Page from './components/layout/Page';
+import Avatar from './components/post/Avatar';
+import TopbarSearch from './components/layout/TopbarSearch';
+import SearchResults from './components/layout/SearchResults';
+import NotificationsSheet from './components/layout/NotificationsSheet';
 import Tabs from './components/layout/Tabs';
 import CreateRepoModal from './components/modals/CreateRepoModal';
 import PublicationList from './components/post/PublicationList';
 import PostDetailScreen from '../Post/PostDetailScreen';
 import ProfileScreen from '../Profile/ProfileScreen';
+import SettingsScreen from '../Settings/SettingsScreen';
 import './FeedScreen.css';
 
 const POSTS_PER_PAGE = 10;
 
-const NAV_ITEMS = [
-  { label: 'Лента', icon: '📡', action: 'feed' },
-  { label: 'Профиль', icon: '👤', action: 'profile' },
-  { label: 'Мои посты', icon: '📁', action: 'my' },
-  { label: 'Настройки', icon: '⚙️', action: 'settings' },
-];
 
-const TABS = [
-  { id: 'for-you', label: 'Для вас' },
-  { id: 'fresh', label: 'Свежее' },
-  { id: 'top', label: 'Топ' },
-];
 
 export default function FeedScreen() {
+  const t = useT();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [tab, setTab] = useState('for-you');
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeNav, setActiveNav] = useState('feed');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const closeSearch = () => { setSearchOpen(false); setSearchQuery(''); };
+  const [notifOpen, setNotifOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [openPost, setOpenPost] = useState(null);
 
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [myProfile, setMyProfile] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null); // Для чужих профилей
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
@@ -58,7 +60,29 @@ export default function FeedScreen() {
       .then(({ data }) => {
         if (!data?.username) setNeedsProfileSetup(true);
       });
+    // аватарка для вкладки «Профиль»
+    getProfile(supabase, currentUser.id).then((p) => p && setMyProfile(p));
   }, [currentUser]);
+
+  // вкладки нижней панели; у «Профиля» вместо иконки — ваша аватарка, как в Telegram
+  const myName = myProfile?.display_name || myProfile?.username || t('nav.profile');
+  const TABS = [
+    { id: 'for-you', label: t('tab.forYou') },
+    { id: 'fresh', label: t('tab.fresh') },
+    { id: 'top', label: t('tab.top') },
+  ];
+  const navItems = [
+    // невыбранная вкладка — контурная иконка, выбранная — залитая
+    { label: t('nav.feed'), icon: <FeedOutlineIcon size={28} />, iconActive: <FeedIcon size={28} />, action: 'feed' },
+    {
+      label: t('nav.profile'),
+      icon: currentUser
+        ? <span className="tab-avatar"><Avatar url={myProfile?.avatar_url} name={myName} seed={currentUser.id} size={28} /></span>
+        : <UserIcon size={24} />,
+      action: 'profile',
+    },
+    { label: t('nav.settings'), icon: <SettingsIcon size={28} />, iconActive: <SettingsFilledIcon size={28} />, action: 'settings' },
+  ];
 
   const loadPosts = useCallback(async (mode, limit, offset) => {
     if (mode === 'for-you') {
@@ -167,7 +191,7 @@ export default function FeedScreen() {
     const channel = supabase
       .channel('repositories-feed')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'repositories' },
-        (p) => setPosts((prev) => [p.new, ...prev]))
+        (p) => setPosts((prev) => (prev.some((x) => x.id === p.new.id) ? prev : [p.new, ...prev])))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'repositories' },
         (p) => setPosts((prev) => prev.filter((x) => x.id !== p.old.id)))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'repositories' },
@@ -181,12 +205,19 @@ export default function FeedScreen() {
   };
 
   const handleNavClick = (action) => {
-    if (action === 'profile') {
-      setProfileUserId(null);
-      setProfileOpen(true);
-    }
-    setMenuOpen(false);
+    // вкладка закрывает открытые поверх экраны (поиск, уведомления, чужой профиль)
+    closeSearch();
+    setNotifOpen(false);
+    setProfileUserId(null);
+    if (action === 'feed' && activeNav === 'feed') window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveNav(action);
   };
+
+  const backToFeed = () => setActiveNav('feed');
+
+  // порядок вкладок: экраны стоят в ряд и сдвигаются при переключении
+  const NAV_ORDER = ['feed', 'profile', 'settings'];
+  const navIndex = Math.max(0, NAV_ORDER.indexOf(activeNav));
 
   const handleOpenPost = (post) => {
     setOpenPost(post);
@@ -195,7 +226,7 @@ export default function FeedScreen() {
   const handleOpenProfile = (userId) => {
     if (userId === currentUser?.id) {
       setProfileUserId(null);
-      setProfileOpen(true);
+      setActiveNav('profile');
     } else {
       setProfileUserId(userId);
     }
@@ -203,18 +234,21 @@ export default function FeedScreen() {
 
   return (
     <>
-      <div className="app">
+      <div
+        className={`app ${activeNav !== 'feed' || notifOpen || profileUserId ? 'has-side-page' : ''}`}
+        style={{ '--nav-shift': `${-navIndex * 100}%` }}
+      >
         <div className="app-bg" />
 
         <aside className="desktop-sidebar">
           <ul className="side-menu-list">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <li key={item.label}>
                 <button
-                  className="side-menu-item"
+                  className={`side-menu-item ${activeNav === item.action ? 'is-active' : ''}`}
                   onClick={() => handleNavClick(item.action)}
                 >
-                  <span className="side-menu-icon">{item.icon}</span>
+                  <span className="side-menu-icon">{activeNav === item.action && item.iconActive ? item.iconActive : item.icon}</span>
                   {item.label}
                 </button>
               </li>
@@ -223,25 +257,27 @@ export default function FeedScreen() {
         </aside>
 
         {/* Топбар: 103px = 52px (кнопки) + 51px (фильтры) */}
-        <header className="topbar">
+        <header className={`topbar ${searchOpen ? 'is-searching' : ''}`}>
           <div className="topbar-row">
-            <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
-              <div className="menu-btn-stripes">
-                <span></span><span></span><span></span>
-              </div>
-            </button>
+            <TopbarSearch
+              open={searchOpen}
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              onOpen={() => setSearchOpen(true)}
+              onClose={closeSearch}
+            />
 
-            <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
+            <button className="fixed-logo" onClick={handleLogoClick} aria-label={t('top.refresh')}>
               <Logo className="logo-icon" />
               <span className="logo-text">связь</span>
               <span className="logo-beta-capsule">BETA</span>
             </button>
 
             <div className="double-btn">
-              <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
-                <LogoutIcon size={20} />
+              <button className="double-btn-item" aria-label={t('top.notifications')} onClick={() => setNotifOpen(true)} title={t('top.notifications')}>
+                <BellIcon size={24} />
               </button>
-              <button className="double-btn-item" aria-label="Создать" onClick={() => setModalOpen(true)}>
+              <button className="double-btn-item" aria-label={t('top.create')} onClick={() => setModalOpen(true)}>
                 <PlusIcon size={20} />
               </button>
             </div>
@@ -256,12 +292,19 @@ export default function FeedScreen() {
           <section className="interests-section">
             {refreshing && (
               <div className="refresh-overlay">
-                <div className="refresh-text">Обновляем рекомендации...</div>
+                <div className="refresh-text">{t('feed.refreshing')}</div>
               </div>
             )}
 
-            {loading && posts.length === 0 ? (
-              <div className="loading-feed">Загрузка...</div>
+            {searchOpen ? (
+              <SearchResults
+                query={searchQuery}
+                currentUser={currentUser}
+                onOpenPost={handleOpenPost}
+                onOpenProfile={handleOpenProfile}
+              />
+            ) : loading && posts.length === 0 ? (
+              <div className="loading-feed">{t('feed.loading')}</div>
             ) : (
               <>
                 <PublicationList
@@ -277,12 +320,23 @@ export default function FeedScreen() {
         </main>
       </div>
 
-      <SideMenu
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        items={NAV_ITEMS}
-        onItemClick={handleNavClick}
-      />
+      <TabBar items={navItems} active={activeNav} onSelect={handleNavClick} />
+
+      {notifOpen && <NotificationsSheet onClose={() => setNotifOpen(false)} />}
+
+      {/* «Настройки» — экран вкладки, как в Telegram */}
+      {currentUser && (
+        <SettingsScreen
+          user={currentUser}
+          profile={myProfile}
+          active={activeNav === 'settings'}
+          slide={2 - navIndex}
+          onClose={backToFeed}
+          onOpenProfile={() => setActiveNav('profile')}
+          onOpenNotifications={() => setNotifOpen(true)}
+          onLogout={handleLogout}
+        />
+      )}
 
       {modalOpen && (
         <CreateRepoModal onClose={() => setModalOpen(false)} onCreate={() => load(true)} />
@@ -305,20 +359,33 @@ export default function FeedScreen() {
           onClose={() => {}}
           onComplete={() => setNeedsProfileSetup(false)}
         />
-      ) : profileOpen && currentUser ? (
-        <ProfileScreen
-          user={currentUser}
-          onClose={() => setProfileOpen(false)}
-          onOpenPost={handleOpenPost}
-        />
-      ) : profileUserId ? (
-        <ProfileScreen
-          user={currentUser}
-          targetUserId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenPost={handleOpenPost}
-        />
-      ) : null}
+      ) : (
+        <>
+          {/* «Профиль» — экран вкладки */}
+          {currentUser && (
+            <ProfileScreen
+              user={currentUser}
+              asPage
+              active={activeNav === 'profile'}
+              slide={1 - navIndex}
+              onClose={backToFeed}
+              onOpenPost={handleOpenPost}
+            />
+          )}
+          {/* чужой профиль въезжает справа, с кнопкой «Назад» */}
+          {profileUserId && (
+            <ProfileScreen
+              key={profileUserId}
+              user={currentUser}
+              targetUserId={profileUserId}
+              asPage
+              pushed
+              onClose={() => setProfileUserId(null)}
+              onOpenPost={handleOpenPost}
+            />
+          )}
+        </>
+      )}
     </>
   );
 }

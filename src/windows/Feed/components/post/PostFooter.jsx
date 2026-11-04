@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useT } from '../../../../lib/i18n';
 import { supabase } from '../../../../lib/supabaseClient';
 import { getProfile } from '../../../../lib/profilesCache';
 import { HeartFilledIcon, EyeIcon, CommentIcon, ArrowRightIcon, DownloadIcon } from '../../../../assets/icons/Icons';
@@ -30,6 +31,7 @@ export default function PostFooter({
   onOpenComments,
   hasUnreadComments 
 }) {
+  const t = useT();
   const [commentCount, setCommentCount] = useState(0);
   const [recentCommenters, setRecentCommenters] = useState([]);
   const instanceIdRef = useRef(Math.random().toString(36).slice(2, 9));
@@ -116,8 +118,8 @@ export default function PostFooter({
   };
 
   const commentText = commentCount === 0 
-    ? 'Прокомментировать' 
-    : `${commentCount} ${plural(commentCount, ['комментарий', 'комментария', 'комментариев'])}`;
+    ? t('post.comment') 
+    : t('post.comments', { n: commentCount });
 
   const hasCommenters = recentCommenters.length > 0;
 
@@ -128,7 +130,7 @@ export default function PostFooter({
         <button
           className={`post-action like-btn ${isLiked ? 'is-liked' : ''} ${burst ? 'is-bursting' : ''}`}
           onClick={(e) => { e.stopPropagation(); onLike?.(); }}
-          aria-label="Нравится"
+          aria-label={t('post.like')}
         >
           <div className="like-icon-wrapper">
             <HeartFilledIcon size={20} className="like-icon" />
@@ -143,9 +145,9 @@ export default function PostFooter({
           </div>
 
           {files.length > 0 && (
-            <button className="post-action post-download-btn" onClick={handleDownload} aria-label="Скачать">
+            <button className="post-action post-download-btn" onClick={handleDownload} aria-label={t('post.download')}>
               <DownloadIcon size={20} />
-              <span>Скачать</span>
+              <span>{t('post.download')}</span>
             </button>
           )}
         </div>

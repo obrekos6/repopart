@@ -1,4 +1,5 @@
 import React from 'react';
+import { useT } from '../../../../lib/i18n';
 import PostCard from './PostCard';
 
 export default function PublicationList({
@@ -9,12 +10,13 @@ export default function PublicationList({
   onRequireAuth,
   onOpenProfile,
 }) {
+  const t = useT();
   if (publications.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-state-icon">🛰️</div>
-        <p className="empty-state-text">Тут тихо...</p>
-        <p className="empty-state-subtext">Загляните позже</p>
+        <p className="empty-state-text">{t('feed.emptyTitle')}</p>
+        <p className="empty-state-subtext">{t('feed.emptySub')}</p>
       </div>
     );
   }

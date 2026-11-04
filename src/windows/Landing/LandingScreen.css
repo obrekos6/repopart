@@ -1,26 +1,38 @@
 /* лендинг использует общие стили из FeedScreen.css — здесь только своё */
 
+.landing-purpose {
+  text-align: center;
+  margin: 4px 0 20px;
+  font-size: var(--text-subheadline);
+  line-height: var(--text-subheadline-lh);
+  letter-spacing: var(--text-subheadline-ls);
+  color: var(--text-secondary);
+}
+
+/* кнопка-капсула iOS */
 .landing-more {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   max-width: 420px;
-  height: 46px;
+  height: 50px;
   margin: 24px auto 0;
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
   font-family: var(--font-main);
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: var(--text-body);
+  letter-spacing: var(--text-body-ls);
+  font-weight: var(--font-heavy);
   cursor: pointer;
-  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.15s ease;
 }
 
 .landing-more:hover {
-  background: var(--bg-search);
+  filter: brightness(1.08);
 }
 
 .landing-links {

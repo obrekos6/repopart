@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useT } from '../../../../lib/i18n';
 import { PlayIcon, PauseIcon } from '../../../../assets/icons/Icons';
 import './AudioPlayer.css';
 
@@ -13,6 +14,7 @@ const formatTime = (sec) => {
 };
 
 export default function AudioPlayer({ src, name }) {
+  const t = useT();
   const audioRef = useRef(null);
   const waveformRef = useRef(null);
   const rootRef = useRef(null);
@@ -185,7 +187,7 @@ export default function AudioPlayer({ src, name }) {
 
   return (
     <div className="audio-player" ref={rootRef}>
-      <button className="audio-play" onClick={toggle} aria-label={playing ? 'Пауза' : 'Воспроизвести'}>
+      <button className="audio-play" onClick={toggle} aria-label={playing ? t('audio.pause') : t('audio.play')}>
         {playing ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
       </button>
 

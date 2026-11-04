@@ -142,34 +142,26 @@
 .profile-setup-error {
   font-family: var(--font-main);
   font-size: 0.85rem;
-  color: #ef4444;
+  color: var(--accent-red);
   text-align: center;
 }
 
 /* accent submit */
 .profile-setup-submit {
   font-family: var(--font-main);
-  font-size: 1rem;
-  font-weight: var(--font-bold);
+  font-size: var(--text-body);
+  letter-spacing: var(--text-body-ls);
+  font-weight: var(--font-heavy);
   color: #fff;
   border: none;
-  border-radius: var(--radius-normal);
+  border-radius: var(--radius-pill);
   width: 100%;
   height: 50px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  background: linear-gradient(
-    315deg,
-    rgba(0, 139, 255, 0.95) 0%,
-    rgba(0, 120, 230, 0.78) 50%,
-    rgba(0, 139, 255, 0.85) 100%
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  background: var(--accent);
 }
 
 .profile-setup-submit:disabled {

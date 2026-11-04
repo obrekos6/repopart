@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useT } from '../../../lib/i18n';
 import { supabase } from '../../../lib/supabaseClient';
 import { getProfile } from '../../../lib/profilesCache';
 import { ArrowUpIcon } from '../../../assets/icons/Icons';
@@ -6,6 +7,7 @@ import Avatar from '../../Feed/components/post/Avatar';
 import './Comment.css';
 
 export default function CommentInput({ onSend, disabled, user }) {
+  const t = useT();
   const [text, setText] = useState('');
   const [profile, setProfile] = useState(null);
   const taRef = useRef(null);
@@ -40,7 +42,7 @@ export default function CommentInput({ onSend, disabled, user }) {
   };
 
   const fallbackName = user?.email ? user.email.split('@')[0] : 'user';
-  const displayName = profile?.username || fallbackName;
+  const displayName = profile?.display_name || profile?.username || fallbackName;
   const canSend = !disabled && !!text.trim();
 
   return (
@@ -59,7 +61,7 @@ export default function CommentInput({ onSend, disabled, user }) {
           <textarea
             ref={taRef}
             className="comment-input-field"
-            placeholder="Оставьте комментарий…"
+            placeholder={t('comments.placeholder')}
             value={text}
             onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
             onKeyDown={handleKey}
@@ -74,7 +76,7 @@ export default function CommentInput({ onSend, disabled, user }) {
           className={`comment-input-send ${canSend ? 'is-active' : ''}`}
           onClick={handleSubmit}
           disabled={!canSend}
-          aria-label="Отправить"
+          aria-label={t('comments.send')}
         >
           <ArrowUpIcon size={22} />
         </button>

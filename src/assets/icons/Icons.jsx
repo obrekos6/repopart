@@ -31,6 +31,12 @@ import SvgPaperclipIcon from './svg/paperclip.svg?react';
 import SvgFileIcon from './svg/file.svg?react';
 import SvgMusicIcon from './svg/music.svg?react';
 import SvgVideoIcon from './svg/video.svg?react';
+import SvgSearchIcon from './svg/search.svg?react';
+import SvgBellIcon from './svg/bell.svg?react';
+import SvgFeedIcon from './svg/feed.svg?react';
+import SvgSettingsIcon from './svg/settings.svg?react';
+import SvgFeedOutlineIcon from './svg/feed-outline.svg?react';
+import SvgSettingsFilledIcon from './svg/settings-filled.svg?react';
 
 export const EyeIcon = ({ className, size = 20 }) => (
   <SvgEyeIcon className={className} width={size} height={size} style={{ display: 'block' }} />
@@ -158,4 +164,28 @@ export const MusicIcon = ({ className, size = 28 }) => (
 
 export const VideoIcon = ({ className, size = 28 }) => (
   <SvgVideoIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const SearchIcon = ({ className, size = 28 }) => (
+  <SvgSearchIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const BellIcon = ({ className, size = 28 }) => (
+  <SvgBellIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const FeedIcon = ({ className, size = 28 }) => (
+  <SvgFeedIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const SettingsIcon = ({ className, size = 28 }) => (
+  <SvgSettingsIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const FeedOutlineIcon = ({ className, size = 28 }) => (
+  <SvgFeedOutlineIcon className={className} width={size} height={size} style={{ display: 'block' }} />
+);
+
+export const SettingsFilledIcon = ({ className, size = 28 }) => (
+  <SvgSettingsFilledIcon className={className} width={size} height={size} style={{ display: 'block' }} />
 );

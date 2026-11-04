@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-export default function Tabs({ tabs, active, onChange }) {
+/*
+ * Капсула вкладок с ползунком, который можно тянуть пальцем.
+ * tabs: [{ id, label, icon? }]; если есть icon — она рисуется над подписью
+ * (так сделана нижняя панель TabBar).
+ */
+export default function Tabs({ tabs, active, onChange, className = '' }) {
   const containerRef = useRef(null);
   const [capsule, setCapsule] = useState({ left: 0, width: 0 });
   const [dragging, setDragging] = useState(false);
@@ -75,6 +80,8 @@ export default function Tabs({ tabs, active, onChange }) {
       if (!dragActiveRef.current) return;
       const dx = e.clientX - stateRef.current.startX;
       if (Math.abs(dx) > 5) stateRef.current.moved = true;
+      // пока палец не сдвинулся — это обычное нажатие, ползунок не трогаем
+      if (!stateRef.current.moved) return;
 
       const positions = stateRef.current.positions;
       if (positions.length === 0) return;
@@ -157,25 +164,43 @@ export default function Tabs({ tabs, active, onChange }) {
   };
 
   return (
-    <div className="tabs" ref={containerRef} onPointerDown={handlePointerDown}>
+    <div className={`tabs ${className}`} ref={containerRef} onPointerDown={handlePointerDown}>
       <div
-        className={`tabs-capsule ${dragging ? 'is-dragging' : ''}`}
+        className={`tabs-capsule ${dragging && hoveredTab != null ? 'is-dragging' : ''}`}
         style={{
           left: `${capsule.left}px`,
           width: `${capsule.width}px`,
-          transform: `scale(${dragging ? 1.08 : 1})`,
+          transform: `scale(${dragging && hoveredTab != null ? 1.08 : 1})`,
         }}
       />
       {tabs.map((t) => {
-        const isVisualActive = dragging ? hoveredTab === t.id : active === t.id;
+        // при перетаскивании выделена вкладка под пальцем; пока её нет (просто
+        // нажатие) — остаётся текущая, поэтому ничего не мигает
+        const isVisualActive = dragging && hoveredTab != null ? hoveredTab === t.id : active === t.id;
         return (
           <button
             key={t.id}
             data-tab-id={t.id}
             className={`tab ${isVisualActive ? 'is-active' : ''}`}
             onClick={() => handleClick(t.id)}
+            aria-label={t.label}
+            aria-current={active === t.id ? 'page' : undefined}
           >
-            {t.label}
+            {t.icon ? (
+              <>
+                {/* выбранная вкладка — залитая иконка (iconActive), остальные — контурная */}
+                {t.iconActive ? (
+                  // обе иконки лежат друг на друге и плавно сменяют друг друга
+                  <span className="tab-icon is-dual" aria-hidden>
+                    <span className={`tab-icon-layer ${isVisualActive ? '' : 'is-shown'}`}>{t.icon}</span>
+                    <span className={`tab-icon-layer ${isVisualActive ? 'is-shown' : ''}`}>{t.iconActive}</span>
+                  </span>
+                ) : (
+                  <span className="tab-icon" aria-hidden>{t.icon}</span>
+                )}
+                <span className="tab-label">{t.label}</span>
+              </>
+            ) : t.label}
           </button>
         );
       })}

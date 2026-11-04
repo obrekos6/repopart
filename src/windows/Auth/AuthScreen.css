@@ -141,7 +141,7 @@ body.auth-lock-scroll {
 }
 
 .auth-subtitle.is-error {
-  color: #ef4444;
+  color: var(--accent-red);
 }
 
 /* =============================================
@@ -162,7 +162,7 @@ body.auth-lock-scroll {
 }
 
 .auth-outlined.is-error {
-  box-shadow: inset 0 0 0 2px #ef4444;
+  box-shadow: inset 0 0 0 2px var(--accent-red);
 }
 
 .auth-outlined.is-shaking {
@@ -244,7 +244,7 @@ body.auth-lock-scroll {
 }
 
 .auth-outlined.is-error .auth-outlined-label.is-floating {
-  color: #ef4444;
+  color: var(--accent-red);
 }
 
 .auth-eye-btn-inside {

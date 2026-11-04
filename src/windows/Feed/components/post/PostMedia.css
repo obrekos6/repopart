@@ -228,3 +228,46 @@
   font-size: 0.75rem;
   color: var(--text-secondary);
 }
+/* ---------- загрузка как в Telegram ---------- */
+.post-image-thumb {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(14px) saturate(1.2);
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+.media-loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.media-loader-ring {
+  position: absolute;
+  inset: 0;
+  animation: media-loader-spin 1.6s linear infinite;
+}
+
+.media-loader-ring circle { transition: stroke-dasharray 0.25s ease; }
+
+.media-loader-x { position: relative; }
+
+@keyframes media-loader-spin { to { transform: rotate(360deg); } }
+
+/* маленькие плитки альбома — кольцо поменьше */
+.post-media-tile.is-compact .media-loader { transform: scale(0.75); }

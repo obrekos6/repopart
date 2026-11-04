@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useT } from '../../../../lib/i18n';
 import { createPortal } from 'react-dom';
+// у «Перевести» значка пока нет: иконки translate нет в проекте
 import { ShareIcon, CopyIcon, TrashIcon } from '../../../../assets/icons/Icons';
 import './PostContextMenu.css';
 
@@ -8,10 +10,13 @@ export default function PostContextMenu({
   onClose,
   onShare,
   onCopy,
+  onTranslate,
+  translated = false,
   onDelete,
   isAuthor,
   hasCaption,
 }) {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const sheetRef = useRef(null);
   const dragRef = useRef({
@@ -116,7 +121,7 @@ export default function PostContextMenu({
             onClick={() => { handleClose(); onShare?.(); }}
           >
             <span className="post-ctx-icon"><ShareIcon size={22} /></span>
-            Поделиться
+            {t('menu.share')}
           </button>
 
           {hasCaption && (
@@ -125,7 +130,17 @@ export default function PostContextMenu({
               onClick={() => { handleClose(); onCopy?.(); }}
             >
               <span className="post-ctx-icon"><CopyIcon size={22} /></span>
-              Скопировать
+              {t('menu.copy')}
+            </button>
+          )}
+
+          {onTranslate && (
+            <button
+              className="post-ctx-item"
+              onClick={() => { handleClose(); onTranslate(); }}
+            >
+              <span className="post-ctx-icon" />
+              {translated ? t('menu.showOriginal') : t('menu.translate')}
             </button>
           )}
 
@@ -135,7 +150,7 @@ export default function PostContextMenu({
               onClick={() => { handleClose(); onDelete?.(); }}
             >
               <span className="post-ctx-icon"><TrashIcon size={22} /></span>
-              Удалить
+              {t('menu.delete')}
             </button>
           )}
         </div>

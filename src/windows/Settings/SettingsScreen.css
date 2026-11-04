@@ -1,0 +1,248 @@
+/* Настройки как в Telegram: группы со значками в цветных квадратах */
+
+/* --- я: аватарка, имя, почта и ник --- */
+.st-me {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.st-me-name {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.st-me-sub {
+  font-size: var(--text-subheadline);
+  color: var(--text-secondary);
+}
+
+/* --- группа --- */
+.st-group {
+  margin-bottom: 8px;
+  border-radius: 26px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.st-group + .st-group { margin-top: 20px; }
+
+.st-group-title {
+  padding: 14px 16px 2px;
+  font-family: var(--font-main);
+  font-size: var(--text-subheadline);
+  font-weight: var(--font-heavy);
+  color: var(--accent);
+}
+
+.st-footer {
+  margin: 6px 16px 20px;
+  font-family: var(--font-main);
+  font-size: var(--text-footnote);
+  line-height: var(--text-footnote-lh);
+  color: var(--text-secondary);
+}
+
+.st-footer.is-status { color: var(--accent); }
+
+/* --- строка --- */
+.st-row {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.st-row.is-static { cursor: default; }
+.st-row:not(.is-static):active { background: var(--fill-secondary); }
+.st-row.is-disabled { opacity: 0.5; }
+
+/* линия-разделитель начинается от текста, как в iOS */
+.st-row + .st-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 58px;
+  right: 0;
+  height: 1px;
+  background: var(--separator);
+}
+
+.st-group-title + .st-row::before { display: none; }
+.st-row.no-icon::before { left: 16px; }
+
+.st-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.st-row-label { font-size: var(--text-body); }
+
+.st-row-sub {
+  font-size: var(--text-footnote);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-row-value {
+  font-size: var(--text-body);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.st-row.is-danger { color: var(--accent-red); }
+.st-chevron { color: var(--label-tertiary); display: flex; }
+
+/* --- значок в цветном квадрате --- */
+.st-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.st-icon-lg { width: 40px; height: 40px; border-radius: 50%; }
+
+.st-icon.is-blue { background: var(--accent-blue); }
+.st-icon.is-red { background: var(--accent-red); }
+.st-icon.is-teal { background: var(--accent-teal); }
+.st-icon.is-purple { background: var(--accent-purple); }
+.st-icon.is-gray { background: var(--gray); }
+
+/* --- переключатель как в iOS --- */
+.st-switch {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--fill-primary);
+  cursor: pointer;
+  transition: background 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.st-switch.is-on { background: var(--accent-green); }
+.st-switch:disabled { cursor: default; }
+
+.st-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 3px 1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s cubic-bezier(.32, .72, 0, 1);
+}
+
+.st-switch.is-on .st-switch-knob { transform: translateX(20px); }
+
+/* --- переключатель-кружок (выбор языка) --- */
+.st-radio {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--label-tertiary);
+  transition: box-shadow 0.2s ease;
+}
+
+.st-radio.is-on { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 6px var(--bg-card), inset 0 0 0 12px var(--accent); }
+
+/* --- ползунок размера текста --- */
+.st-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+.st-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--fill-primary) var(--fill));
+  outline: none;
+}
+
+.st-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.st-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.st-slider-value {
+  min-width: 24px;
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  color: var(--accent);
+  text-align: right;
+}
+
+.st-preview { padding: 0 16px 16px; }
+
+.st-preview-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--bg-search);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  line-height: 1.3;
+}
+
+/* --- версия в самом низу --- */
+.st-version {
+  margin: 24px 0 8px;
+  text-align: center;
+  font-family: var(--font-main);
+  font-size: var(--text-footnote);
+  color: var(--text-secondary);
+}

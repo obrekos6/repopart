@@ -1,0 +1,119 @@
+/* Нижняя панель (Figma: Tab Bar): отступы 25px по бокам и 16px снизу,
+   капсула с отступом 4/3px, вкладка мин. 66px, иконка 30px, подпись 10px */
+.tabbar-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  padding: 0 25px max(16px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+/* Scroll Edge Effect - Soft, Edge=Bottom — как под топбаром, только снизу:
+   размытие 5px и 30px, оба плавно гаснут кверху */
+.tabbar-wrap::before,
+.tabbar-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: -24px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.tabbar-wrap::before {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, #000 60%, transparent 100%);
+}
+
+.tabbar-wrap::after {
+  opacity: 0.9;                 /* Figma: Opacity 90% */
+  backdrop-filter: blur(30px);  /* Figma: Blur 60 = 30px в CSS (Figma задаёт диаметр) */
+  -webkit-backdrop-filter: blur(30px);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+}
+
+.tabs.tabbar {
+  pointer-events: auto;
+  --tabs-h: 62px;
+  --tabs-pad: 3px;
+  width: 100%;
+  max-width: 400px;
+  height: var(--tabs-h);
+  padding: 3px 4px;
+}
+
+.tabs.tabbar .tabs-capsule {
+  top: 3px;
+  height: calc(var(--tabs-h) - 6px);
+  border-radius: 100px;
+}
+
+.tabs.tabbar .tab {
+  height: calc(var(--tabs-h) - 6px);
+  min-width: 66px;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px 7px;
+  border-radius: 100px;
+  color: var(--glass-text);
+}
+
+.tabs.tabbar .tab-icon {
+  font-size: 24px;
+  line-height: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabs.tabbar .tab-label {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: var(--font-bold);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* выбранная вкладка — акцентным цветом и жирнее */
+.tabs.tabbar .tab.is-active { color: var(--accent); }
+.tabs.tabbar .tab.is-active .tab-label { font-weight: 700; }  /* жирная подпись */
+
+/* на компьютере навигация остаётся в боковой колонке */
+@media (min-width: 769px) {
+  .tabbar-wrap { display: none; }
+}
+
+/* плавная смена контурной и залитой иконки, цвета и толщины подписи */
+.tabs.tabbar .tab { transition: color 0.25s ease; }
+.tabs.tabbar .tab-label { transition: font-weight 0.2s ease; }
+
+.tabs.tabbar .tab-icon.is-dual {
+  position: relative;
+  width: 30px;
+}
+
+.tabs.tabbar .tab-icon-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(.32, .72, 0, 1);
+}
+
+.tabs.tabbar .tab-icon-layer.is-shown {
+  opacity: 1;
+  transform: scale(1);
+}

@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { useT } from '../../lib/i18n';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useBackButton } from '../../lib/useBackButton';
+import { toPlainText } from '../../lib/richText';
 import CommentList from './components/CommentList';
 import CommentInput from './components/CommentInput';
 import './PostDetailScreen.css';
 
 export default function PostDetailScreen({ post, currentUser, onClose, onOpenProfile, zIndex = 250 }) {
+  const t = useT();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
@@ -185,7 +188,7 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
 
     if (error) {
       setComments((prev) => prev.filter((c) => c.id !== tempId));
-      alert('Не удалось отправить: ' + error.message);
+      alert(t('comments.sendFail') + error.message);
       return;
     }
 
@@ -197,7 +200,7 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
     const { error } = await supabase.from('comments').delete().eq('id', id);
     if (error) {
       load();
-      alert('Не удалось удалить: ' + error.message);
+      alert(t('comments.deleteFail') + error.message);
     }
   };
 
@@ -219,7 +222,7 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
             {firstMedia.type.startsWith('video/') ? (
               <video src={firstMedia.url} autoPlay muted loop playsInline />
             ) : (
-              <img src={firstMedia.url} alt={post.name || ''} draggable={false} />
+              <img src={firstMedia.url} alt={toPlainText(post.name || '')} draggable={false} />
             )}
           </div>
         )}
@@ -238,9 +241,9 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
 
           <div className="post-detail-scroll">
             {loading ? (
-              <div className="post-detail-empty">Загрузка…</div>
+              <div className="post-detail-empty">{t('comments.loading')}</div>
             ) : comments.length === 0 ? (
-              <div className="post-detail-empty">Пока нет комментариев</div>
+              <div className="post-detail-empty">{t('comments.empty')}</div>
             ) : (
               <CommentList
                 comments={comments}

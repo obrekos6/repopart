@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useT } from '../../../../lib/i18n';
 import AudioPlayer from './AudioPlayer';
-import { MuteIcon, PlayIcon, FileIcon } from '../../../../assets/icons/Icons';
+import { MuteIcon, PlayIcon, FileIcon, CloseIcon } from '../../../../assets/icons/Icons';
 import { computeLayout, MAX_TILES } from '../../../../lib/mediaLayout';
 import './PostMedia.css';
 
@@ -34,6 +35,101 @@ const prefersReducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const ratioCache = new Map();
+
+/* ---------- загрузка фото как в Telegram ----------
+ * Пока скачивается полное фото, показываем его крошечную копию (file.thumb,
+ * ~40px) под сильным размытием, а по центру — кольцо прогресса.
+ * Фото качаем через fetch, чтобы знать, сколько байт уже пришло.
+ * Готовые фото держим в памяти, чтобы при повторном показе не качать заново. */
+const blobCache = new Map();
+
+function useProgressiveImage(url, enabled) {
+  const [state, setState] = useState(() =>
+    blobCache.has(url) ? { src: blobCache.get(url), progress: 1 } : { src: null, progress: 0 }
+  );
+
+  useEffect(() => {
+    if (!enabled || !url || state.src) return undefined;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(String(res.status));
+        const total = Number(res.headers.get('content-length')) || 0;
+        let blob;
+        if (res.body && total) {
+          const reader = res.body.getReader();
+          const chunks = [];
+          let got = 0;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            got += value.length;
+            setState((s) => ({ ...s, progress: Math.min(0.99, got / total) }));
+          }
+          blob = new Blob(chunks, { type: res.headers.get('content-type') || 'image/jpeg' });
+        } else {
+          blob = await res.blob();
+        }
+        const src = URL.createObjectURL(blob);
+        blobCache.set(url, src);
+        setState({ src, progress: 1 });
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        setState({ src: url, progress: 1 }); // не вышло через fetch — пусть грузит сам <img>
+      }
+    })();
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, enabled]);
+
+  return state;
+}
+
+/* начать загрузку, когда плитка подъезжает к экрану (как loading="lazy") */
+function useNearViewport(ref) {
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return undefined;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setNear(true); io.disconnect(); }
+    }, { rootMargin: '600px' });
+    io.observe(el);
+    // запасной вариант: если браузер не прислал событие видимости (бывает в
+    // фоновых вкладках), проверяем положение плитки сами
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.bottom > -600 && r.top < window.innerHeight + 600) setNear(true);
+    };
+    const t = setTimeout(check, 1200);
+    window.addEventListener('scroll', check, { passive: true, capture: true });
+    return () => {
+      io.disconnect();
+      clearTimeout(t);
+      window.removeEventListener('scroll', check, { capture: true });
+    };
+  }, [ref, near]);
+  return near;
+}
+
+/* кольцо загрузки как в Telegram: тёмный круг, белая дуга прогресса, крестик */
+function LoadingRing({ progress }) {
+  const t = useT();
+  const R = 20;
+  const C = 2 * Math.PI * R;
+  const shown = Math.max(0.08, progress);
+  return (
+    <div className="media-loader" aria-label={t('common.loading')} role="progressbar" aria-valuenow={Math.round(progress * 100)}>
+      <svg className="media-loader-ring" viewBox="0 0 48 48" width="48" height="48" aria-hidden>
+        <circle cx="24" cy="24" r={R} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          strokeDasharray={`${C * shown} ${C}`} transform="rotate(-90 24 24)" />
+      </svg>
+      <CloseIcon size={18} className="media-loader-x" />
+    </div>
+  );
+}
 
 function useRatios(files) {
   const [measured, setMeasured] = useState({});
@@ -72,6 +168,11 @@ function MediaTile({ file, rect, style, alt, extra, onOpen, onRatio }) {
   const [loaded, setLoaded] = useState(false);
   const [duration, setDuration] = useState(null);
   const videoRef = useRef(null);
+  const tileRef = useRef(null);
+  const near = useNearViewport(tileRef);
+  const isImage = file.type.startsWith('image/');
+  const fullUrl = isImage ? imageUrl(file.url, rect.w) : null;
+  const img = useProgressiveImage(fullUrl, isImage && near);
 
   const video = file.type.startsWith('video/');
   const hasDims = file.width > 0 && file.height > 0;
@@ -87,7 +188,7 @@ function MediaTile({ file, rect, style, alt, extra, onOpen, onRatio }) {
   };
 
   return (
-    <div className={`post-media-tile ${compact ? 'is-compact' : ''}`} style={style}>
+    <div ref={tileRef} className={`post-media-tile ${compact ? 'is-compact' : ''}`} style={style}>
       <div
         className="post-media-tile-inner"
         role="button"
@@ -95,6 +196,11 @@ function MediaTile({ file, rect, style, alt, extra, onOpen, onRatio }) {
         onClick={onOpen}
         onKeyDown={handleKey}
       >
+        {/* сверхсжатая копия под размытием — видна, пока грузится полное фото */}
+        {!loaded && file.thumb && (
+          <img src={file.thumb} alt="" aria-hidden className="post-image-thumb" draggable={false} />
+        )}
+
         {video ? (
           <video
             ref={videoRef}
@@ -118,10 +224,9 @@ function MediaTile({ file, rect, style, alt, extra, onOpen, onRatio }) {
             }}
           />
         ) : (
-          <img
-            src={imageUrl(file.url, rect.w)}
+          img.src && <img
+            src={img.src}
             alt={alt}
-            loading="lazy"
             decoding="async"
             draggable={false}
             className={`post-image ${loaded ? 'is-loaded' : ''}`}
@@ -137,6 +242,8 @@ function MediaTile({ file, rect, style, alt, extra, onOpen, onRatio }) {
             }}
           />
         )}
+
+        {!loaded && <LoadingRing progress={video ? 0.25 : img.progress} />}
 
         {video && loaded && (
           <>
@@ -211,7 +318,7 @@ export default function PostMedia({ files = NO_FILES, postName, onPreview, onOpe
                     height: `${(t.h / H) * 100}%`,
                   }}
                   onRatio={report}
-                  onOpen={() => onPreview?.(f, i, visual)}
+                  onOpen={(e) => onPreview?.(f, i, visual, e)}
                 />
               );
             })}

@@ -6,6 +6,8 @@ import AuthScreen from './windows/Auth/AuthScreen';
 import FeedScreen from './windows/Feed/FeedScreen';
 import './styles/theme.css';
 import './styles/global.css';
+import './styles/glass.css';
+import './styles/richText.css';
 
 function ProtectedFeed({ user, loading }) {
   if (loading) return <div className="loading-screen">Загрузка...</div>;

@@ -13,28 +13,16 @@
   --side-pad: 16px;
   --topbar-controls-width: 370px;
 
-  /* glass material, light theme */
-  --glass-bg: rgba(255, 255, 255, 0.65);
-  --glass-filter: blur(14px) saturate(180%);
-  --glass-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.12),
-    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
-    inset -1px -1px 0 rgba(255, 255, 255, 0.3);
-  --glass-text: #1a1a1a;
-  --tab-text: #000000;
-  --tab-active-bg: #ededed;
+  /* стекло задаётся в styles/theme.css */
+  --tab-text: #ffffff;
+  --tab-active-bg: var(--glass-selection);
+  --title-color: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --glass-bg: rgba(40, 40, 44, 0.55);
-    --glass-shadow:
-      0 8px 40px rgba(0, 0, 0, 0.4),
-      inset 1px 1px 0 rgba(255, 255, 255, 0.14),
-      inset -1px -1px 0 rgba(255, 255, 255, 0.05);
-    --glass-text: #f5f5f5;
-    --tab-text: #ffffff;
-    --tab-active-bg: rgba(255, 255, 255, 0.12);
+    --tab-text: #000000;              /* Labels/Primary */
+    --title-color: #333333;           /* Labels - Vibrant/Primary */
   }
 }
 
@@ -71,6 +59,32 @@
   z-index: 60;
   background: transparent;
   pointer-events: none;
+}
+
+/* Scroll Edge Effect - Soft (Figma: Materials): только размытие, без цвета.
+   Слой 1 — лёгкое размытие 5px, слой 2 — сильное 30px, оба плавно гаснут книзу */
+.topbar::before,
+.topbar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.topbar::before {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+}
+
+.topbar::after {
+  opacity: 0.9;                 /* Figma: Opacity 90% */
+  backdrop-filter: blur(30px);  /* Figma: Blur 60 = 30px в CSS (Figma задаёт диаметр) */
+  -webkit-backdrop-filter: blur(30px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
 }
 
 /* only the real controls catch clicks, empty space lets the feed scroll */
@@ -114,11 +128,7 @@
   color: var(--glass-text);
   border: none;
   overflow: hidden;
-
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-filter);
-  -webkit-backdrop-filter: var(--glass-filter);
-  box-shadow: var(--glass-shadow);
+  /* стекло: styles/glass.css */
 }
 
 .menu-btn {
@@ -141,18 +151,28 @@
   border-radius: 2px;
 }
 
-/* logo: centered on the whole panel, aligned with the other buttons */
+/* Заголовок: как «Chats» в Telegram — просто текст по центру, без стекла
+   (Figma: Title 22px, top 13px, Headline 17/22 Semibold) */
 .fixed-logo {
   position: absolute;
   left: 50%;
   top: 0;
   transform: translateX(-50%);
-  padding: 0 18px;
+  padding: 0 10px;
   gap: 4px;
   cursor: pointer;
   font-family: inherit;
   overflow: visible;
+  color: var(--title-color);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease;
 }
+
+.fixed-logo:active { opacity: 0.6; }
 
 .logo-icon {
   width: 20px;
@@ -163,9 +183,10 @@
 
 .logo-text {
   font-family: var(--font-logo);
-  font-size: 17px;
-  font-weight: var(--font-bold);
-  letter-spacing: -0.02em;
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+  font-weight: var(--font-heavy);
+  letter-spacing: var(--text-body-ls);
   text-transform: lowercase;
   position: relative;
   z-index: 1;
@@ -177,18 +198,18 @@
   left: 100%;
   top: 50%;
   transform: translateY(-50%);
-  margin-left: 10px;
+  margin-left: -6px; /* 4px от текста, как значок рядом с «Chats» */
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 1px 6px;
   border-radius: var(--radius-pill);
-  background: rgba(0, 139, 255, 0.25);
-  color: #008BFF;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
   font-family: var(--font-main);
   font-size: 12px;
-  font-weight: var(--font-regular);
+  font-weight: var(--font-bold);
   line-height: 16px;
   letter-spacing: 0;
   white-space: nowrap;
@@ -228,17 +249,12 @@
   padding: var(--tabs-pad);
   margin: 0;
   border-radius: var(--radius-pill);
-  isolation: isolate;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: pan-y;
   border: none;
-
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-filter);
-  -webkit-backdrop-filter: var(--glass-filter);
-  box-shadow: var(--glass-shadow);
+  /* стекло: styles/glass.css */
 }
 
 .tabs-capsule {
@@ -280,11 +296,12 @@
   border: none;
   font-family: var(--font-main);
   font-size: 14px;
-  font-weight: 510;
+  font-weight: var(--font-bold);
   line-height: 18px;
   letter-spacing: -0.08px;
   cursor: pointer;
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab.is-active {
@@ -384,7 +401,266 @@
     overflow-y: auto;
   }
 
-  .menu-btn { display: none; }
   .topbar-row,
   .topbar-filters { padding: 0 24px; }
+}
+
+
+/* лента не прячется под нижней панелью вкладок */
+@media (max-width: 768px) {
+  .main-content { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- настройки (как в Telegram: группы со значками в цветных квадратах) ---------- */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.settings-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* разделитель между пунктами — от текста, как в iOS */
+.settings-item + .settings-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 58px;
+  right: 0;
+  height: 1px;
+  background: var(--separator);
+}
+
+.settings-item:active { background: var(--fill-secondary); }
+.settings-item.is-danger { color: var(--accent-red); }
+
+.settings-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.settings-item-icon.is-red { background: var(--accent-red); }
+.settings-item-icon.is-gray { background: var(--gray); }
+
+/* аватарка во вкладке «Профиль» — без обводки */
+.tab-avatar { display: flex; border-radius: 50%; }
+
+/* ===================================================================
+   Поиск в топбаре: кнопка растягивается до другого края, остальное
+   растворяется, высота топбара (и размытия под ним) уменьшается
+   =================================================================== */
+.topbar.is-searching {
+  height: calc(var(--topbar-top) + var(--topbar-row-h));
+}
+
+.topbar .fixed-logo,
+.topbar .double-btn,
+.topbar .topbar-filters {
+  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(.32, .72, 0, 1);
+}
+
+.topbar.is-searching .fixed-logo,
+.topbar.is-searching .double-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.topbar.is-searching .fixed-logo { transform: translateX(-50%) scale(0.92); }
+
+.topbar.is-searching .topbar-filters {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+
+.topbar.is-searching .topbar-filters .tabs { pointer-events: none; }
+
+.topbar.is-searching ~ .main-content {
+  padding-top: calc(var(--topbar-top) + var(--topbar-row-h) + 8px);
+}
+
+/* сама кнопка-поле */
+.topbar-search {
+  position: relative;
+  z-index: 2;
+  width: var(--btn-h);
+  cursor: pointer;
+  transition: width 0.45s cubic-bezier(.32, .72, 0, 1);
+}
+
+.topbar-search.is-open {
+  width: 100%;
+  cursor: text;
+}
+
+.topbar-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.topbar-search-hit {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: inherit;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-search-input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  left: 42px;
+  right: 40px;
+  top: 0;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--glass-text);
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  caret-color: var(--accent);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.topbar-search-input::placeholder { color: var(--label-tertiary); }
+.topbar-search-input::-webkit-search-cancel-button { display: none; }
+
+.topbar-search.is-open .topbar-search-input {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.2s ease 0.15s, visibility 0s;
+}
+
+.topbar-search-close {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--fill-secondary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+  animation: topbar-search-in 0.3s ease 0.15s both;
+}
+
+@keyframes topbar-search-in { from { opacity: 0; transform: scale(0.6); } }
+
+.search-results.is-loading { opacity: 0.6; transition: opacity 0.15s ease; }
+
+/* лента — первая «страница» галереи: уезжает влево, когда выбрана другая вкладка */
+.app .topbar,
+.app .main-content {
+  transform: translateX(var(--nav-shift, 0%));
+}
+
+.app .topbar { transition: height 0.4s cubic-bezier(.32, .72, 0, 1), transform 0.4s cubic-bezier(.32, .72, 0, 1); }
+.app .main-content { transition: padding-top 0.4s cubic-bezier(.32, .72, 0, 1), transform 0.4s cubic-bezier(.32, .72, 0, 1); }
+
+@media (min-width: 769px) {
+  /* на компьютере вкладок снизу нет — лента не сдвигается */
+  .app .topbar, .app .main-content { transform: none; }
+}
+
+/* ===================================================================
+   Компьютер: боковое меню и экраны в правой половине
+   =================================================================== */
+.desktop-sidebar .side-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.desktop-sidebar .side-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  font-weight: var(--font-bold);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.2s ease;
+}
+
+.desktop-sidebar .side-menu-item:hover { background: var(--fill-secondary); }
+.desktop-sidebar .side-menu-item.is-active { color: var(--accent); font-weight: 700; }
+
+.desktop-sidebar .side-menu-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+  /* открыт экран справа — лента и топбар занимают левую половину */
+  .app .topbar { transition: right 0.4s cubic-bezier(.32, .72, 0, 1), height 0.4s cubic-bezier(.32, .72, 0, 1); }
+  .app .main-content { transition: padding 0.4s cubic-bezier(.32, .72, 0, 1); }
+  .app.has-side-page .topbar { right: 50%; }
+  /* колонка постов центрируется по той же оси, что и топбар (левая половина экрана) */
+  .app.has-side-page .main-content {
+    padding-left: 16px;
+    padding-right: calc(50% + 16px);
+  }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useT } from '../../../lib/i18n';
 import { supabase } from '../../../lib/supabaseClient';
 import { getProfile } from '../../../lib/profilesCache';
 import { formatTime } from '../../../lib/formatTime';
@@ -8,6 +9,7 @@ import { TrashIcon, VerifiedIcon } from '../../../assets/icons/Icons';
 const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
 export default function CommentItem({ comment, currentUser, onDelete, onOpenProfile }) {
+  const t = useT();
   const [author, setAuthor] = useState(null);
   const mountedRef = useRef(true);
 
@@ -35,7 +37,7 @@ export default function CommentItem({ comment, currentUser, onDelete, onOpenProf
   const canOpenProfile = !!(onOpenProfile && comment.user_id);
 
   const handleDelete = () => {
-    if (!window.confirm('Удалить комментарий?')) return;
+    if (!window.confirm(t('comments.confirmDelete'))) return;
     onDelete(comment.id);
   };
 
@@ -51,7 +53,7 @@ export default function CommentItem({ comment, currentUser, onDelete, onOpenProf
         className="comment-item-avatar"
         onClick={handleOpenProfile}
         disabled={!canOpenProfile}
-        aria-label={`Открыть профиль ${displayName}`}
+        aria-label={`${t('comments.openProfile')} ${displayName}`}
       >
         <Avatar
           url={author?.avatar_url}
@@ -76,7 +78,7 @@ export default function CommentItem({ comment, currentUser, onDelete, onOpenProf
         <div className="comment-text">{comment.content}</div>
       </div>
       {isAuthor && !isTemp && (
-        <button className="comment-delete" onClick={handleDelete} aria-label="Удалить">
+        <button className="comment-delete" onClick={handleDelete} aria-label={t('comments.delete')}>
           <TrashIcon size={16} />
         </button>
       )}

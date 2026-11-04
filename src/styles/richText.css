@@ -1,0 +1,105 @@
+/* Форматирование текста как в Telegram (общие стили для постов и редактора) */
+
+.rt-code {
+  font-family: 'SF Mono', ui-monospace, Menlo, Consolas, 'Roboto Mono', monospace;
+  font-size: 0.94em;
+  color: inherit;
+  background: none;
+  padding: 0;
+}
+
+/* Цитата: акцентная полоса слева, лёгкая заливка, значок кавычек справа */
+.rt-quote {
+  position: relative;
+  display: block;
+  margin: 4px 0;
+  padding: 3px 26px 3px 11px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  overflow: hidden;
+}
+
+.rt-quote::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+
+.rt-quote::after {
+  content: '\201D';
+  position: absolute;
+  top: 0;
+  right: 7px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* Скрытый текст: вместо букв мерцающие точки, по нажатию — показать */
+.rt-spoiler {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  background-image:
+    radial-gradient(circle, var(--text-primary) 0.7px, transparent 1.1px),
+    radial-gradient(circle, var(--text-secondary) 0.6px, transparent 1px);
+  background-size: 5px 5px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+  animation: rt-spoiler-dust 1.6s linear infinite;
+  transition: color 0.3s ease;
+}
+
+.rt-spoiler * { color: transparent; -webkit-text-fill-color: transparent; }
+
+.rt-spoiler.is-shown {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  background-image: none;
+  animation: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.rt-spoiler.is-shown * { color: inherit; -webkit-text-fill-color: currentColor; }
+
+@keyframes rt-spoiler-dust {
+  0%   { background-position: 0 0, 2px 3px; }
+  50%  { background-position: 2px 1px, 0 5px; }
+  100% { background-position: 0 0, 2px 3px; }
+}
+
+/* в редакторе спойлер виден, но подсвечен — чтобы было понятно, что он скрыт */
+.rt-input span[data-spoiler] {
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--text-secondary) 22%, transparent) 0 4px,
+    color-mix(in srgb, var(--text-secondary) 10%, transparent) 4px 8px
+  );
+}
+
+.rt-input code {
+  font-family: 'SF Mono', ui-monospace, Menlo, Consolas, 'Roboto Mono', monospace;
+  font-size: 0.94em;
+}
+
+.rt-input blockquote {
+  position: relative;
+  margin: 4px 0;
+  padding: 3px 26px 3px 11px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}

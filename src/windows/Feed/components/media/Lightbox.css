@@ -1,145 +1,190 @@
-.lightbox {
+/* Галерея как Media Player в Telegram iOS (Figma: Sheets → Media Player) */
+
+.lb {
   position: fixed;
   inset: 0;
-  z-index: 999999;
-  background: rgba(0, 0, 0, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: zoom-out;
-  isolation: isolate;
+  z-index: 400;
+  background: rgba(0, 0, 0, calc(var(--lb-fade, 1)));
   opacity: 0;
   transition: opacity 0.25s ease;
-  touch-action: pan-y;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.lightbox.is-visible {
-  opacity: 1;
-}
+.lb.is-visible { opacity: 1; }
 
-/* close button — top-right */
-.lightbox-close {
+/* ---------- лента кадров ---------- */
+.lb-stage {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  cursor: pointer;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.lb-stage.is-dragging { cursor: grabbing; }
+
+.lb-strip {
+  display: flex;
+  height: 100%;
+  transition: transform 0.38s cubic-bezier(.32, .72, 0, 1);
+  will-change: transform;
+}
+
+.lb-stage.is-dragging .lb-strip { transition: none; }
+
+.lb-slide {
+  flex: 0 0 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.05);
+.lb-media {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
 }
 
-.lightbox-close:active {
-  transform: scale(0.95);
+.lb-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  font-family: var(--font-main);
+  padding: 24px;
+  width: min(360px, 100%);
 }
 
-/* Навигация (Стрелки) */
-.lightbox-nav {
+.lb-file-name { font-size: var(--text-body); text-align: center; word-break: break-word; }
+
+.lb-file-download {
+  margin-top: 8px;
+  padding: 12px 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: var(--font-heavy);
+}
+
+/* ---------- стеклянные кнопки ---------- */
+.lb-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  color: #fff;
+  background: rgba(128, 128, 128, 0.32);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.35),
+    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.25s ease, transform 0.2s ease;
+}
+
+.lb-btn:active { transform: scale(0.94); }
+.lb-btn-spacer { width: 44px; height: 44px; }
+
+.lb-back {
   position: absolute;
+  top: max(env(safe-area-inset-top), 16px);
+  left: 16px;
+  z-index: 3;
+}
+
+/* пауза по центру (Figma: 84px) */
+.lb-play {
+  position: absolute;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  cursor: pointer;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  z-index: 3;
+}
+
+/* ---------- низ: дорожка и действия ---------- */
+.lb-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px max(16px, env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.lb-scrubber {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 10;
-  backdrop-filter: blur(8px);
-  transition: background 0.15s ease, opacity 0.15s ease;
+  gap: 12px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(128, 128, 128, 0.32);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.3);
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: none;
 }
 
-.lightbox-nav:hover {
+.lb-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
   background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
 }
 
-.lightbox-nav.is-disabled {
+.lb-track-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.lb-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* кнопки прячутся при просмотре видео; нажатие по кадру показывает их снова */
+.lb:not(.is-chrome) .lb-btn,
+.lb:not(.is-chrome) .lb-scrubber {
   opacity: 0;
   pointer-events: none;
 }
 
-.lightbox-nav-prev { left: 20px; }
-.lightbox-nav-next { right: 20px; }
-
-@media (max-width: 768px) {
-  .lightbox-nav { display: none; }
-}
-
-.lightbox-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-  max-height: 100%;
-  cursor: default;
-}
-
-.lightbox-media {
-  max-width: 100%;
-  max-height: 100vh;
-  width: auto;
-  height: auto;
-  display: block;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-@media (min-width: 769px) {
-  .lightbox { padding: 40px; }
-  .lightbox-content { max-width: 90vw; max-height: 90vh; }
-  .lightbox-media { max-height: 90vh; border-radius: var(--radius-normal); }
-}
-
-@media (max-width: 768px) {
-  .lightbox-content { max-width: 100vw; max-height: 100vh; }
-  .lightbox-media { max-height: 100vh; }
-}
-
-.lightbox-audio,
-.lightbox-file {
-  padding: 40px;
-  text-align: center;
-  color: #fff;
-  max-width: 400px;
-}
-
-/* Акцентный цвет для иконок в лайтбоксе */
-.lightbox-audio-icon,
-.lightbox-file-icon { 
-  color: var(--accent);
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.lightbox-audio-name,
-.lightbox-file-name { font-size: 1rem; margin-bottom: 8px; word-break: break-word; }
-
-.lightbox-file-download {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 10px 24px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-normal);
-  color: #fff;
-  text-decoration: none;
-}
+/* на время свайпа вниз кнопки тоже гаснут */
+.lb .lb-btn,
+.lb .lb-scrubber { opacity: var(--lb-fade, 1); }
+.lb:not(.is-chrome) .lb-btn,
+.lb:not(.is-chrome) .lb-scrubber { opacity: 0; }

@@ -532,3 +532,303 @@
     transition: none;
   }
 }
+/* ===================================================================
+   Профиль как страница Telegram (asPage): без шторки, под нижней панелью
+   =================================================================== */
+.profile-screen-root.is-page {
+  z-index: 65;                 /* выше топбара (60), ниже нижней панели (70) */
+  background: var(--bg-primary);
+}
+
+.profile-screen-root.is-page .profile-screen-backdrop { display: none; }
+
+.profile-screen-root.is-page .profile-screen-panel {
+  --handle-h: max(env(safe-area-inset-top), 6px);
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+
+/* вкладки листаются, как галерея */
+.profile-screen-root.is-page:not(.is-pushed) {
+  transition: transform 0.4s cubic-bezier(.32, .72, 0, 1);
+}
+
+.profile-screen-root.is-page.is-inactive { pointer-events: none; }
+.profile-screen-root.is-page.is-inactive > * { pointer-events: none; }
+
+/* лента не прячется под нижней панелью */
+.profile-screen-root.is-page .profile-screen-scroll {
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+}
+
+/* на компьютере профиль — в правой половине экрана */
+@media (min-width: 769px) {
+  .profile-screen-root.is-page {
+    left: 50%;
+    box-shadow: -1px 0 0 var(--separator);
+  }
+  .profile-screen-root.is-page.is-inactive { transform: translateX(105%) !important; }
+  .profile-screen-root.is-page .profile-screen-scroll { padding-bottom: 40px; }
+}
+
+/* чужой профиль въезжает справа, как экран в Telegram */
+.profile-screen-root.is-page.is-pushed { z-index: 68; background: transparent; } /* поверх поиска */
+
+.profile-screen-root.is-page.is-pushed .profile-screen-panel {
+  transform: translateX(100vw);
+  transition: transform 350ms var(--ease);
+}
+
+.profile-screen-root.is-page.is-pushed.is-on .profile-screen-panel { transform: translateX(0); }
+
+/* ===================================================================
+   Профиль как в Telegram: одна аватарка и одно имя плавно меняют
+   положение между тремя состояниями.
+     --s  прокрутка (px), --p  свёрнутость 0…1, --t  раскрытие фото 0…1
+   =================================================================== */
+.profile-screen-panel {
+  --t: 0;
+  --p: 0;
+  --s: 0px;
+  --A: 96px;                                        /* аватарка в обычном виде */
+  --W: var(--hero-full);                            /* ширина экрана профиля   */
+  --Ta: calc(var(--handle-h) + 52px);               /* верх аватарки           */
+  --Tn: calc(var(--Ta) + var(--A) + 14px);          /* верх имени              */
+  --Th: calc(var(--handle-h) + 17px);               /* имя в шапке (свёрнуто)  */
+  --Hn: calc(var(--Tn) + 58px);                     /* высота шапки профиля    */
+  --nw: 120px;                                      /* ширина имени в шапке (JS) */
+  --Ac: 28px;                                       /* аватарка в свёрнутой шапке */
+  /* в свёрнутой шапке аватарка и имя стоят рядом, вместе по центру */
+  --Gl: calc((var(--W) - var(--Ac) - 8px - var(--nw)) / 2);
+}
+
+/* место под аватарку и имя в прокрутке */
+.profile-hero.pf-hero-space {
+  overflow: visible;
+  height: calc(var(--Hn) + (var(--W) - var(--Hn)) * var(--t));
+  transition: none;
+}
+
+/* старый заголовок в шапке больше не используется — имя доезжает туда само */
+.profile-screen-title { display: none; }
+
+.pf-morph {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* --- аватарка: круг 96px → квадратное фото во всю ширину; при прокрутке уменьшается и уходит --- */
+.pf-avatar {
+  --as: calc(var(--A) + (var(--Ac) - var(--A)) * var(--p));      /* размер при сворачивании */
+  position: absolute;
+  /* обычное → свёрнутое (рядом с именем в шапке) → фото на весь экран */
+  left: calc(
+    ((var(--W) - var(--A)) / 2 + (var(--Gl) - (var(--W) - var(--A)) / 2) * var(--p)) * (1 - var(--t))
+  );
+  top: calc(
+    ((var(--Ta) - var(--s)) + (var(--Th) - 3.5px - (var(--Ta) - var(--s))) * var(--p)) * (1 - var(--t))
+  );
+  width: calc(var(--as) + (var(--W) - var(--as)) * var(--t));
+  height: calc(var(--as) + (var(--W) - var(--as)) * var(--t));
+  border-radius: calc(var(--as) / 2 * (1 - var(--t)));
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: var(--fill-secondary);
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pf-avatar img,
+.pf-avatar-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-main);
+  font-weight: var(--font-heavy);
+  font-size: calc((40px - 28px * var(--p)) * (1 - var(--t)) + 160px * var(--t));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* затемнение снизу у фото на весь экран — чтобы имя читалось */
+.pf-avatar-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0) 45%),
+              linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0, rgba(0, 0, 0, 0) 90px);
+  opacity: var(--t);
+}
+
+/* --- имя: по центру под аватаркой → в шапке (при прокрутке) → слева внизу фото --- */
+.pf-name {
+  position: absolute;
+  top: calc(((var(--Tn) - var(--s)) + (var(--Th) - (var(--Tn) - var(--s))) * var(--p)) * (1 - var(--t)) + (var(--W) - 80px) * var(--t));
+  left: calc(50% * (1 - var(--t)) + 16px * var(--t));
+  /* в шапке имя сдвинуто вправо на половину «аватарка + отступ» */
+  transform: translateX(calc((-50% + 18px * var(--p)) * (1 - var(--t))));
+  max-width: calc(var(--W) - 32px - 80px * (1 - var(--t)));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: calc((22px - 5px * var(--p)) * (1 - var(--t)) + 26px * var(--t));
+  line-height: 1.25;
+  color: color-mix(in srgb, #fff calc(var(--t) * 100%), var(--sheet-text));
+  white-space: nowrap;
+}
+
+.pf-name-text { overflow: hidden; text-overflow: ellipsis; }
+.pf-verified { color: var(--accent); flex-shrink: 0; }
+
+/* --- подпись (число публикаций): под именем, в шапке исчезает --- */
+.pf-sub {
+  position: absolute;
+  top: calc((var(--Tn) + 30px - var(--s)) * (1 - var(--t)) + (var(--W) - 46px) * var(--t));
+  left: calc(50% * (1 - var(--t)) + 16px * var(--t));
+  transform: translateX(calc(-50% * (1 - var(--t))));
+  font-family: var(--font-main);
+  font-size: var(--text-subheadline);
+  white-space: nowrap;
+  color: color-mix(in srgb, rgba(255, 255, 255, 0.85) calc(var(--t) * 100%), var(--sheet-text-2));
+  opacity: calc(1 - var(--p) * 1.6);
+}
+
+/* плавность — только при смене режима (тап по аватарке или потягивание вниз) */
+.profile-screen-panel[data-anim] .pf-avatar,
+.profile-screen-panel[data-anim] .pf-name,
+.profile-screen-panel[data-anim] .pf-sub,
+.profile-screen-panel[data-anim] .pf-avatar-scrim,
+.profile-screen-panel[data-anim] .pf-hero-space {
+  transition: all 360ms var(--ease);
+}
+
+.profile-screen-panel[data-dragging] .pf-avatar,
+.profile-screen-panel[data-dragging] .pf-name,
+.profile-screen-panel[data-dragging] .pf-sub,
+.profile-screen-panel[data-dragging] .pf-hero-space { transition: none !important; }
+
+/* --- кнопки действий (как Message / Mute / Search у Telegram) --- */
+.pf-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 16px 12px;
+}
+
+.pf-action {
+  flex: 0 1 25%;
+  min-width: 80px;
+  height: 58px;
+  border: none;
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.pf-action:active { transform: scale(0.96); }
+
+/* --- карточка с информацией --- */
+.pf-info {
+  margin: 0 16px 12px;
+  padding: 2px 16px;
+  border-radius: 20px;
+  background: var(--bg-card);
+}
+
+.pf-info:empty { display: none; }
+
+.pf-info-row {
+  position: relative;
+  padding: 10px 0;
+  font-family: var(--font-main);
+}
+
+.pf-info-row + .pf-info-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--separator);
+}
+
+.pf-info-label {
+  font-size: var(--text-footnote);
+  color: var(--sheet-text-2);
+}
+
+.pf-info-value {
+  font-size: var(--text-body);
+  color: var(--sheet-text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pf-info-value.is-accent { color: var(--accent); }
+
+/* --- вкладка «Посты» в капсуле, как Posts / Media / Links --- */
+.pf-tabs {
+  display: flex;
+  margin: 0 16px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-card);
+}
+
+.pf-tab {
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  color: var(--sheet-text);
+}
+
+.pf-tab.is-active { background: var(--fill-secondary); }
+
+.pf-posts { padding: 12px 16px 16px; }
+
+/* слои: фон шапки → аватарка и имя → кнопки шапки (всегда сверху, даже над фото) */
+.profile-screen-header { z-index: 7; }
+.profile-screen-header::before { display: none; }
+
+.pf-morph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(56px + var(--handle-h));
+  background: var(--sheet-bg);
+  border-bottom: 1px solid var(--sheet-line);
+  opacity: calc(var(--p) * (1 - var(--t)));
+}
+
+.profile-screen-root.is-page .pf-morph::before { background: var(--bg-primary); }
+.profile-screen-root.is-page .profile-screen-panel { background: var(--bg-primary); }

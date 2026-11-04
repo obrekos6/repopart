@@ -1,0 +1,72 @@
+/* поверх топбара и нижней панели */
+.app-sheet-overlay { z-index: 240; }
+
+.app-sheet-spacer {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.app-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 16px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- поиск: поле-капсула как в Telegram ---------- */
+.search-field-wrap {
+  padding: 0 16px 10px;
+}
+
+.search-field {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 296px;
+  outline: none;
+  background: var(--bg-search);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: var(--text-body);
+  caret-color: var(--accent);
+}
+
+.search-field::placeholder { color: var(--label-tertiary); }
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.search-results .post-card { width: 100%; }
+
+/* ---------- пустое состояние ---------- */
+.sheet-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50%;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+}
+
+.sheet-empty-icon { display: flex; color: var(--label-tertiary); margin-bottom: 4px; }
+
+.sheet-empty-title {
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  font-weight: var(--font-heavy);
+}
+
+.sheet-empty-text {
+  font-size: var(--text-subheadline);
+  line-height: var(--text-subheadline-lh);
+}
