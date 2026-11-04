@@ -35,7 +35,7 @@ export default function FeedScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [openPost, setOpenPost] = useState(null);
-  
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileUserId, setProfileUserId] = useState(null); // Для чужих профилей
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
@@ -222,31 +222,38 @@ export default function FeedScreen() {
           </ul>
         </aside>
 
-        <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
-          <div className="menu-btn-stripes">
-            <span></span><span></span><span></span>
+        {/* Топбар: 103px = 52px (кнопки) + 51px (фильтры) */}
+        <header className="topbar">
+          <div className="topbar-row">
+            <button className="menu-btn" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+              <div className="menu-btn-stripes">
+                <span></span><span></span><span></span>
+              </div>
+            </button>
+
+            <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
+              <Logo className="logo-icon" />
+              <span className="logo-text">связь</span>
+              <span className="logo-beta-capsule">BETA</span>
+            </button>
+
+            <div className="double-btn">
+              <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
+                <LogoutIcon size={20} />
+              </button>
+              <button className="double-btn-item" aria-label="Создать" onClick={() => setModalOpen(true)}>
+                <PlusIcon size={20} />
+              </button>
+            </div>
           </div>
-        </button>
 
-        <button className="fixed-logo" onClick={handleLogoClick} aria-label="Обновить ленту">
-          <Logo className="logo-icon" />
-          <span className="logo-text">связь</span>
-          <span className="logo-beta-capsule">BETA</span>
-        </button>
-
-        <div className="double-btn">
-          <button className="double-btn-item" aria-label="Выйти" onClick={handleLogout} title="Выйти">
-            <LogoutIcon size={20} />
-          </button>
-          <button className="double-btn-item" aria-label="Создать" onClick={() => setModalOpen(true)}>
-            <PlusIcon size={20} />
-          </button>
-        </div>
+          <div className="topbar-filters">
+            <Tabs tabs={TABS} active={tab} onChange={setTab} />
+          </div>
+        </header>
 
         <main className="main-content">
           <section className="interests-section">
-            <Tabs tabs={TABS} active={tab} onChange={setTab} />
-
             {refreshing && (
               <div className="refresh-overlay">
                 <div className="refresh-text">Обновляем рекомендации...</div>

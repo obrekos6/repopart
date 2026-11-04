@@ -1,0 +1,143 @@
+﻿my-supabase-app/
+|-- .github
+|   \-- workflows
+|       \-- deploy.yml
+|-- .vscode
+|   |-- extensions.json
+|   \-- settings.json
+|-- public
+|   |-- 404.html
+|   |-- app.html
+|   |-- privacy.html
+|   |-- terms.html
+|   \-- yandex_891be9d1f0c90aa6.html
+|-- src
+|   |-- assets
+|   |   |-- fonts
+|   |   |-- icons
+|   |   |   |-- svg
+|   |   |   |   |-- arrow-left.svg
+|   |   |   |   |-- arrow-right.svg
+|   |   |   |   |-- arrow-up.svg
+|   |   |   |   |-- back.svg
+|   |   |   |   |-- camera.svg
+|   |   |   |   |-- close.svg
+|   |   |   |   |-- code.svg
+|   |   |   |   |-- comment.svg
+|   |   |   |   |-- copy.svg
+|   |   |   |   |-- download.svg
+|   |   |   |   |-- external-link.svg
+|   |   |   |   |-- eye.svg
+|   |   |   |   |-- eye-off.svg
+|   |   |   |   |-- file.svg
+|   |   |   |   |-- fullscreen.svg
+|   |   |   |   |-- heart.svg
+|   |   |   |   |-- heart-filled.svg
+|   |   |   |   |-- image.svg
+|   |   |   |   |-- logout.svg
+|   |   |   |   |-- more.svg
+|   |   |   |   |-- music.svg
+|   |   |   |   |-- mute.svg
+|   |   |   |   |-- paperclip.svg
+|   |   |   |   |-- pause.svg
+|   |   |   |   |-- play.svg
+|   |   |   |   |-- plus.svg
+|   |   |   |   |-- refresh.svg
+|   |   |   |   |-- share.svg
+|   |   |   |   |-- trash.svg
+|   |   |   |   |-- user.svg
+|   |   |   |   |-- verified.svg
+|   |   |   |   \-- video.svg
+|   |   |   |-- Icons.jsx
+|   |   |   \-- Logo.jsx
+|   |   |-- hero.png
+|   |   |-- react.svg
+|   |   \-- vite.svg
+|   |-- components
+|   |-- lib
+|   |   |-- avatar.js
+|   |   |-- formatTime.js
+|   |   |-- mediaLayout.js
+|   |   |-- profilesCache.js
+|   |   |-- supabaseClient.js
+|   |   \-- useBackButton.js
+|   |-- styles
+|   |   |-- global.css
+|   |   \-- theme.css
+|   |-- windows
+|   |   |-- Auth
+|   |   |   |-- components
+|   |   |   |   |-- LoginForm.jsx
+|   |   |   |   \-- RegisterForm.jsx
+|   |   |   |-- AuthScreen.css
+|   |   |   \-- AuthScreen.jsx
+|   |   |-- Feed
+|   |   |   |-- components
+|   |   |   |   |-- layout
+|   |   |   |   |   |-- SideMenu.css
+|   |   |   |   |   |-- SideMenu.jsx
+|   |   |   |   |   \-- Tabs.jsx
+|   |   |   |   |-- media
+|   |   |   |   |   |-- HtmlPreviewScreen.css
+|   |   |   |   |   |-- HtmlPreviewScreen.jsx
+|   |   |   |   |   |-- Lightbox.css
+|   |   |   |   |   \-- Lightbox.jsx
+|   |   |   |   |-- modals
+|   |   |   |   |   |-- CreateRepoModal.css
+|   |   |   |   |   \-- CreateRepoModal.jsx
+|   |   |   |   \-- post
+|   |   |   |       |-- AudioPlayer.css
+|   |   |   |       |-- AudioPlayer.jsx
+|   |   |   |       |-- Avatar.css
+|   |   |   |       |-- Avatar.jsx
+|   |   |   |       |-- PostCard.css
+|   |   |   |       |-- PostCard.jsx
+|   |   |   |       |-- PostContextMenu.css
+|   |   |   |       |-- PostContextMenu.jsx
+|   |   |   |       |-- PostFooter.css
+|   |   |   |       |-- PostFooter.jsx
+|   |   |   |       |-- PostHeader.css
+|   |   |   |       |-- PostHeader.jsx
+|   |   |   |       |-- PostMedia.css
+|   |   |   |       |-- PostMedia.jsx
+|   |   |   |       \-- PublicationList.jsx
+|   |   |   |-- FeedScreen.css
+|   |   |   \-- FeedScreen.jsx
+|   |   |-- Landing
+|   |   |   |-- LandingScreen.css
+|   |   |   \-- LandingScreen.jsx
+|   |   |-- Post
+|   |   |   |-- components
+|   |   |   |   |-- Comment.css
+|   |   |   |   |-- CommentInput.jsx
+|   |   |   |   |-- CommentItem.jsx
+|   |   |   |   \-- CommentList.jsx
+|   |   |   |-- PostDetailScreen.css
+|   |   |   \-- PostDetailScreen.jsx
+|   |   \-- Profile
+|   |       |-- components
+|   |       |   |-- ProfileSetup.css
+|   |       |   \-- ProfileSetup.jsx
+|   |       |-- ProfileScreen.css
+|   |       \-- ProfileScreen.jsx
+|   |-- App.jsx
+|   \-- main.jsx
+|-- supabase
+|   |-- .temp
+|   |   |-- cli-latest
+|   |   \-- linked-project.json
+|   |-- functions
+|   |   \-- verify-password
+|   |       |-- .npmrc
+|   |       |-- deno.json
+|   |       \-- index.ts
+|   \-- config.toml
+|-- .gitignore
+|-- eslint.config.js
+|-- Icons.jsx.bak
+|-- index.html
+|-- migrate-icons.cjs
+|-- package.json
+|-- package-lock.json
+|-- README.md
+\-- vite.config.js

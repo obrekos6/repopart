@@ -1,19 +1,5 @@
 import { useEffect, useRef } from 'react';
 
-/*
- * Handles Android/browser back button.
- * Pushes a tagged history entry on mount, listens for popstate.
- *
- * - user presses back   → onBack() runs, the browser consumes our entry
- * - modal closes itself → cleanup removes our entry via history.back()
- *                         (listener is detached first, so no false close)
- *
- * Each entry carries a unique id, so stacked modals don't pop
- * each other's history entries.
- *
- * Listener ignores popstate when another entry was popped:
- * if our entry is still on top, we do nothing.
- */
 export function useBackButton(onBack, enabled = true) {
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
@@ -32,7 +18,6 @@ export function useBackButton(onBack, enabled = true) {
 
     const onPop = () => {
       // If our entry is still the current one, another modal's entry
-      // was popped — do not react.
       if (window.history.state?.__modalId === id) return;
       onBackRef.current?.();
     };
@@ -40,19 +25,21 @@ export function useBackButton(onBack, enabled = true) {
     window.addEventListener('popstate', onPop);
 
     return () => {
-      // detach first — otherwise our own history.back() would re-trigger onBack
       window.removeEventListener('popstate', onPop);
 
-      // pop only if our entry is still on top.
-      // it won't be if the user pressed back themselves (entry consumed),
-      // or if a stacked modal has already popped past us.
-      if (window.history.state?.__modalId === id) {
-        try {
-          window.history.back();
-        } catch {
-          // ignore
+      // Defer back() to the next task. If another modal was opened in the same
+      // commit (e.g. SideMenu → ProfileScreen), its pushState runs before this
+      // timeout fires, so history.state won't belong to us anymore — and we
+      // won't accidentally pop the newly opened modal.
+      setTimeout(() => {
+        if (window.history.state?.__modalId === id) {
+          try {
+            window.history.back();
+          } catch {
+            // ignore
+          }
         }
-      }
+      }, 0);
     };
   }, [enabled]);
 }

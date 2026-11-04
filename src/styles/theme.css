@@ -1,9 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
 
 :root {
-  --accent: rgb(0, 139, 255);
-  --accent-text: #fff;
-  
   /* Шрифты */
   --font-main: 'Roboto', sans-serif;
   --font-logo: 'Roboto', sans-serif;
@@ -11,9 +8,9 @@
 
   /* Жирность шрифта */
   --font-regular: 400;
-  --font-bold: 500;     
-  --font-heavy: 600;    
-  --font-black: 700;    
+  --font-bold: 500;
+  --font-heavy: 600;
+  --font-black: 700;
 
   /* Скругления (Border Radius) */
   --radius-normal: 24px;
@@ -21,7 +18,8 @@
   --radius-small: 4px;
   --radius-pill: 999px;
 
-  /* Тёмная тема */
+  /* ===== Тёмная тема (по умолчанию) ===== */
+  /* Фоны и текст — как были раньше (в Figma для тёмной темы их нет) */
   --bg-primary: rgb(0, 0, 0);
   --bg-card: rgb(10, 10, 10);
   --bg-post: rgb(22, 22, 24);
@@ -31,19 +29,60 @@
   --border-color: rgba(255, 255, 255, 0.12);
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   --logo-color: #fff;
+
+  /* Labels / Grays */
+  --label-tertiary: rgba(235, 235, 245, 0.3); /* придумано, в Figma нет */
+  --gray: #8E8E93;
+
+  /* Акценты — тёмная тема (Figma) */
+  --accent-blue: #0091FF;
+  --accent-red: #FF4245;
+  --accent-green: #30D158;
+  --accent-indigo: #6D7CFF;
+  --accent-pink: #FF375F;
+  --accent-orange: #FF9230;
+  --accent-purple: #DB34F2;
+  --accent-cyan: #3CD3FE;
+  --accent-mint: #00DAC3;
+  --accent-yellow: #FFD600;
+  --accent-brown: #B78A66;
+  --accent-teal: #00D2E0;
+
+  --accent: var(--accent-blue);
+  --accent-text: #fff;
 }
 
+/* ===== Светлая тема (Figma) ===== */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg-primary: rgb(255, 255, 255);
-    --bg-card: rgb(255, 255, 255);
-    --bg-post: rgb(241, 241, 246);
-    --text-primary: rgb(0, 0, 0);
-    --text-secondary: rgb(112, 117, 121);
-    --bg-search: rgb(242, 242, 242);
+    /* Backgrounds (Grouped) */
+    --bg-primary: #F2F2F7;   /* Primary: фон экрана */
+    --bg-card: #FFFFFF;      /* Secondary: карточки и группы */
+    --bg-post: #FFFFFF;      /* посты — как карточки на сером фоне */
+
+    /* Labels */
+    --text-primary: #000000;
+    --text-secondary: rgba(60, 60, 67, 0.6);
+    --label-tertiary: rgba(60, 60, 67, 0.3);
+
+    --bg-search: rgba(118, 118, 128, 0.12); /* придумано, в Figma нет */
     --border-color: rgba(0, 0, 0, 0.1);
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     --logo-color: #000;
+
+    /* Акценты — светлая тема (Figma) */
+    --accent-blue: #0088FF;
+    --accent-red: #FF383C;
+    --accent-green: #34C759;
+    --accent-indigo: #6155F5;
+    --accent-pink: #FF2D55;
+    --accent-orange: #FF8D28;
+    --accent-purple: #CB30E0;
+    --accent-cyan: #00C0E8;
+    --accent-mint: #00C8B3;
+    --accent-yellow: #FFCC00;
+    --accent-brown: #AC7F5E;
+    --accent-teal: #00C3D0;
   }
 }
 

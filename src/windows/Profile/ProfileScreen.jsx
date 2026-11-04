@@ -9,7 +9,7 @@ import PublicationList from '../Feed/components/post/PublicationList';
 import ProfileSetup from './components/ProfileSetup';
 import './ProfileScreen.css';
 
-const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
+const VERIFIED_EMAILS = ['obrekos6@gmail.com', 'andrey09012014@gmail.com'];
 
 const COLLAPSE_DISTANCE = 110; 
 const PULL_RANGE = 180;        
