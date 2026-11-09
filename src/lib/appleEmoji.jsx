@@ -3,10 +3,9 @@ import './appleEmoji.css';
 
 /*
  * Эмодзи картинками (шрифтом нельзя: цветной шрифт слишком тяжёлый для браузера).
- * Рисунки Apple защищены авторским правом, поэтому пока включено только на localhost.
- * Чтобы включить на сайте, поставить ENABLED = true.
+ * Картинки грузятся из публичного набора emoji-datasource-apple.
  */
-const ENABLED = import.meta.env.DEV;
+const ENABLED = true;
 const BASE = 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple@16.0.0/img/apple/64/';
 
 const EMOJI_RE = /\p{Regional_Indicator}{2}|[0-9#*]️?⃣|\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?(?:‍\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?)*/gu;

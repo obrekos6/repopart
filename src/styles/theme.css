@@ -2,9 +2,9 @@
 
 :root {
   /* Шрифты: на сайте Roboto (системный шрифт — для будущих приложений) */
-  --font-main: 'Roboto', sans-serif;
+  --font-main: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif; /* на iPhone и Mac системный, иначе Roboto */
   --font-logo: 'Roboto', sans-serif;
-  --font-nickname: 'Roboto', sans-serif;
+  --font-nickname: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
 
   /* Жирность шрифта (у Roboto есть 400 / 500 / 600 / 700) */
   --font-regular: 400;
