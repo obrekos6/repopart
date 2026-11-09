@@ -1,10 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
+@font-face {
+  font-family: 'SvyazFont';
+  src: url('../assets/fonts/SvyazFont-Display-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SvyazFont';
+  src: url('../assets/fonts/SvyazFont-Display-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SvyazFont';
+  src: url('../assets/fonts/SvyazFont-Display-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SvyazFont';
+  src: url('../assets/fonts/SvyazFont-Display-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SvyazFont';
+  src: url('../assets/fonts/SvyazFont-Display-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  /* Шрифты: на сайте Roboto (системный шрифт — для будущих приложений) */
-  --font-main: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif; /* на iPhone и Mac системный, иначе Roboto */
-  --font-logo: 'Roboto', sans-serif;
-  --font-nickname: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  /* Локальный шрифт интерфейса */
+  --font-main: 'SvyazFont', sans-serif;
+  --font-logo: 'SvyazFont', sans-serif;
+  --font-nickname: 'SvyazFont', sans-serif;
 
   /* Жирность шрифта (у Roboto есть 400 / 500 / 600 / 700) */
   --font-regular: 400;
