@@ -1,104 +1,179 @@
-/* Контекстное меню поста в стиле Telegram iOS
-   (Figma: Menu — Liquid Glass Medium, радиус 34px, пункты 17/20) */
+/* Меню поста как у сообщений в iOS: размытый экран, реакции сверху,
+   пост на месте, стеклянный список действий снизу */
 
-.post-ctx-backdrop {
+.pcm {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0);
   z-index: 300;
-  transition: background 0.28s ease, backdrop-filter 0.28s ease;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.post-ctx-backdrop.is-visible {
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+.pcm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.25s ease-out, backdrop-filter 0.25s ease-out, -webkit-backdrop-filter 0.25s ease-out;
+}
+.pcm.is-visible .pcm-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
-.post-ctx-sheet {
-  position: fixed;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  left: 50%;
-  width: min(370px, calc(100% - 32px));
-  padding: 10px 0;
-  /* стекло и скругление: styles/glass.css */
-  transition: transform 0.32s cubic-bezier(.32, .72, 0, 1);
-  display: flex;
-  flex-direction: column;
-  touch-action: none;
+/* ---- пост ---- */
+.pcm-post {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(var(--from, 0));
+  transition: transform 0.35s cubic-bezier(.32, .72, 0, 1);
 }
+.pcm.is-visible .pcm-post { transform: translateY(0); }
+/* длинный пост обрезан снизу — с мягким краем */
+.pcm-post.is-cropped { -webkit-mask-image: linear-gradient(#000 calc(100% - 40px), transparent); mask-image: linear-gradient(#000 calc(100% - 40px), transparent); }
 
-.post-ctx-sheet.is-dragging {
-  transition: none;
-}
 
-/* в Telegram у меню нет «ручки» — оставляем её невидимой зоной для свайпа */
-.post-ctx-handle {
-  height: 0;
-  margin: 0;
-}
-
-.post-ctx-list {
-  display: flex;
-  flex-direction: column;
-  padding: 0 16px;
-}
-
-.post-ctx-item {
-  width: 100%;
+/* ---- реакции ---- */
+.pcm-reactions {
+  position: absolute;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 10px 8px;
-  background: transparent;
+  gap: 2px;
+  padding: 4px 6px 4px 8px;
+  border-radius: 999px;
+  background: var(--pcm-glass);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  transform-origin: 24px 100%;
+  transform: scale(0.6);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(.32, .72, 0, 1), opacity 0.2s ease-out, border-radius 0.25s ease-out;
+}
+.pcm.is-visible .pcm-reactions { transform: scale(1); opacity: 1; }
+
+.pcm-reactions-row {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pcm-reactions-row::-webkit-scrollbar { display: none; }
+
+.pcm-reactions.is-expanded { border-radius: 24px; padding: 8px; }
+.pcm-reactions.is-expanded .pcm-reactions-row { flex-wrap: wrap; overflow: visible; }
+
+.pcm-emoji {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: none;
-  border-radius: 12px;
-  color: var(--glass-text);
-  font-family: var(--font-main);
-  font-size: var(--text-body);
-  line-height: 20px;
-  font-weight: var(--font-regular);
-  letter-spacing: var(--text-body-ls);
-  text-align: left;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 28px;
+  line-height: 40px;
   cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease;
+  transition: transform 0.15s ease-out, background 0.15s ease-out;
 }
+.pcm-emoji:hover { transform: scale(1.15); }
+.pcm-emoji:active { transform: scale(0.9); }
+.pcm-emoji.is-mine { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-.post-ctx-item:hover,
-.post-ctx-item:active {
+.pcm-more {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  margin-left: 2px;
+  border: none;
+  border-radius: 50%;
   background: var(--fill-secondary);
-}
-
-.post-ctx-icon {
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 23px;
-  margin-right: 4px;
-  flex-shrink: 0;
+  cursor: pointer;
 }
 
-.post-ctx-item.is-danger {
-  color: var(--accent-red);
-}
-
-/* разделитель перед «Удалить» (Figma: Separator 21px, линия 1px) */
-.post-ctx-item.is-danger:not(:first-child) {
-  position: relative;
-  margin-top: 21px;
-}
-
-.post-ctx-item.is-danger:not(:first-child)::before {
-  content: '';
+/* «облачко» — два кружка под капсулой, как у мыслей */
+.pcm-dot {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  top: -11px;
-  height: 1px;
-  background: var(--separator);
-  pointer-events: none;
+  border-radius: 50%;
+  background: var(--pcm-glass);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+.pcm-dot-1 { width: 14px; height: 14px; left: 30px; bottom: -8px; }
+.pcm-dot-2 { width: 7px; height: 7px; left: 40px; bottom: -17px; }
+
+/* ---- действия ---- */
+.pcm-menu {
+  position: absolute;
+  width: 250px;
+  padding: 8px 0;
+  border-radius: 28px;
+  background: var(--pcm-glass);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+  transform-origin: 30px 0;
+  transform: scale(0.6);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(.32, .72, 0, 1), opacity 0.2s ease-out;
+}
+.pcm.is-visible .pcm-menu { transform: scale(1); opacity: 1; }
+
+.pcm-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 17px;
+  letter-spacing: -0.43px;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pcm-item:hover, .pcm-item:active { background: var(--fill-secondary); }
+.pcm-item.is-danger { color: var(--accent-red); }
+
+.pcm-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pcm-sep { height: 0.5px; margin: 6px 20px; background: var(--separator); }
+
+/* стекло меню: тёмное в тёмной теме, светлое в светлой */
+:root { --pcm-glass: rgba(37, 37, 39, 0.72); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --pcm-glass: rgba(255, 255, 255, 0.72); }
+}
+:root[data-theme="light"] { --pcm-glass: rgba(255, 255, 255, 0.72); }
+
+.pcm-item { font-weight: 600; }
+.pcm-item.is-comments svg { stroke-width: 2.3; }
+
+/* реакции листаются вбок; края плавно растворяются */
+.pcm-reactions { padding: 4px; overflow: hidden; }
+.pcm-reactions-row {
+  flex: 1;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 999px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 18px), transparent);
 }

@@ -71,7 +71,7 @@
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0);
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.25));
-  animation: post-big-heart 0.8s cubic-bezier(.2, .9, .3, 1.2) forwards;
+  animation: post-big-heart 0.8s cubic-bezier(.32, .72, 0, 1) forwards;
 }
 
 @keyframes post-big-heart {
@@ -94,3 +94,116 @@
   font-size: var(--text-subheadline);
   cursor: pointer;
 }
+
+/* ===================================================================
+   Пост как сообщение в канале: аватар снаружи слева внизу,
+   пузырь со скруглением 18px и хвостиком (форма из UI-кита).
+   =================================================================== */
+.post-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 464px;
+  max-width: 100%;
+}
+.post-row-avatar {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  -webkit-tap-highlight-color: transparent;
+}
+.post-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.post-tail {
+  position: absolute;
+  left: -5.6px;
+  bottom: 0;
+  fill: var(--bg-post);
+  pointer-events: none;
+}
+.post-bubble .post-card {
+  width: 100%;
+  border-radius: 18px;
+  padding: 8px 12px 12px;
+}
+
+/* пока открыто меню, пост показан его копией в меню */
+.post-row.is-menu-open { visibility: hidden; }
+
+/* зажатие: пузырь чуть меньше */
+
+/* текст сразу под именем, без лишнего зазора */
+.post-bubble .post-text { padding: 1px 0 6px; }
+.post-bubble .post-read-more { margin-left: 0; }
+
+/* «Читать далее»: высота растёт плавно */
+.post-text { transition: max-height 0.4s cubic-bezier(.32, .72, 0, 1); }
+
+/* невидимое место под время в конце текста */
+.post-meta-spacer { display: inline-block; height: 1px; vertical-align: baseline; }
+
+/* компьютер: колонка постов шириной с «Для вас / Свежее / Топ», аватар — сбоку снаружи */
+@media (min-width: 769px) {
+  .post-row {
+    width: calc(var(--topbar-controls-width, 370px) + 44px);
+    position: relative;
+    left: -22px;
+  }
+}
+
+.post-bubble .post-card { padding: 7px 12px 12px; }
+.post-bubble .post-text { padding: 0 0 4px; }
+
+.post-bubble .post-card { padding: 8px 12px 12px; }
+.post-bubble .post-text { padding: 2px 0 6px; }
+.post-header.is-bubble { padding-bottom: 3px; }
+
+/* капсула со временем поверх фото/видео */
+.post-media-wrap { position: relative; }
+.post-media-meta {
+  position: absolute;
+  right: 6px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 400;
+  pointer-events: none;
+}
+.post-media-meta .post-meta-time { margin-left: 3px; }
+.post-media-meta svg { width: 13px; height: 13px; }
+
+/* посты появляются быстрым растворением, без надписи «Загрузка» */
+.post-row { animation: post-appear 0.16s ease-out; }
+@keyframes post-appear { from { opacity: 0; } to { opacity: 1; } }
+/* копия поста в меню появляется вместе с меню, без повторного растворения */
+.pcm-post .post-row { animation: none; }
+
+/* нет шапки: фото у верхнего края с тем же отступом 3px, что и по бокам */
+.post-bubble .post-card.no-header { padding-top: 3px; }
+/* нет подписи: под фото сразу следующая строка, без пустого места */
+.post-card.media-only .post-media { margin-bottom: 0; }
+.post-card.media-only .post-footer { padding-top: 0; }
+.post-card.media-only .post-stats-row:not(.is-empty) { padding-top: 8px; }
+.post-card.media-only .post-stats-row.is-empty { display: none; }
+
+/* аватар автора не уходит с экрана, пока виден его пост: едет по низу длинного поста */
+.post-row-avatar { position: sticky; bottom: calc(94px + env(safe-area-inset-bottom)); align-self: flex-end; z-index: 1; }
+@media (min-width: 769px) { .post-row-avatar { bottom: 12px; } }
+.pcm-post .post-row-avatar { position: static; }
+
+/* «Показать оригинал»: по левому краю текста, без пустого места снизу */
+.post-bubble .post-translate-toggle { margin: 0; padding: 0 0 4px; }

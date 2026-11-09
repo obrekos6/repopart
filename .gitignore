@@ -29,3 +29,6 @@ supabase/functions/**/node_modules
 .env
 .env.*
 !.env.example
+# тестовый шрифт — только локально
+public/dev-fonts/
+src/styles/devFont.css

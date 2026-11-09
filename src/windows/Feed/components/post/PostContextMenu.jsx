@@ -1,12 +1,29 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useT } from '../../../../lib/i18n';
 import { createPortal } from 'react-dom';
 // у «Перевести» значка пока нет: иконки translate нет в проекте
-import { ShareIcon, CopyIcon, TrashIcon } from '../../../../assets/icons/Icons';
+import { ShareIcon, CopyIcon, TrashIcon, CommentIcon, DownloadIcon } from '../../../../assets/icons/Icons';
+import { AppleEmoji } from '../../../../lib/appleEmoji';
 import './PostContextMenu.css';
 
+// реакции: панель листается вбок
+const REACTIONS = ['🤣', '😉', '🤔', '🤫', '🫩', '😎', '🤢', '😰', '😭', '😱', '🤬', '😈', '👿', '💀', '💩', '🤡', '❤️', '💯', '👌', '✌️', '🤙', '✊', '💪', '👀', '🎉', '📞', '🥀'];
+
+const GAP = 8;      // между панелью реакций, постом и меню
+const EDGE = 12;    // отступ от краёв экрана
+
+/*
+ * Меню поста как у сообщений в iOS:
+ * экран размывается, сам пост «поднимается» на месте,
+ * над ним — капсула с реакциями, под ним — стеклянный список действий.
+ */
 export default function PostContextMenu({
   open,
+  anchorRef,
+  myEmoji,
+  onReact,
+  onComments,
+  onDownload,
   onClose,
   onShare,
   onCopy,
@@ -18,142 +35,167 @@ export default function PostContextMenu({
 }) {
   const t = useT();
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef(null);
-  const dragRef = useRef({
-    startY: 0,
-    currentY: 0,
-    active: false,
-    pointerId: null,
-  });
-  const [dragOffset, setDragOffset] = useState(0);
+  const [layout, setLayout] = useState(null);
+  const cloneBoxRef = useRef(null);
+  const barRef = useRef(null);
+  const menuRef = useRef(null);
 
-  useEffect(() => {
-    if (open) {
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-      document.body.style.overflow = 'hidden';
-    } else {
-      setVisible(false);
-      setDragOffset(0);
-      document.body.style.overflow = '';
+  // снимок поста и расчёт, где всё разместить:
+  // меню всегда под постом; пост стоит на месте, пока меню влезает,
+  // иначе поднимается ровно настолько, чтобы меню влезло целиком;
+  // слишком длинный пост обрезается снизу (начиная с реакций)
+  useLayoutEffect(() => {
+    if (!open) { setLayout(null); return; }
+    const card = anchorRef?.current;
+    const box = cloneBoxRef.current;
+    if (!card || !box) return;
+    const row = card.closest('.post-row') || card;
+    const rr = row.getBoundingClientRect();
+    const cr = card.getBoundingClientRect();
+
+    const clone = row.cloneNode(true);
+    clone.classList.remove('is-menu-open', 'is-pressed');
+    clone.style.width = `${rr.width}px`;
+    clone.style.margin = '0';
+    clone.style.left = '0';
+    clone.style.position = 'static';
+    clone.querySelectorAll('video').forEach((v) => { v.removeAttribute('autoplay'); v.pause?.(); });
+    // у копии свои id для svg (градиенты и маски аватарок), иначе они пропадают
+    const ids = {};
+    clone.querySelectorAll('[id]').forEach((el) => { const n = `${el.id}-m`; ids[el.id] = n; el.id = n; });
+    clone.querySelectorAll('*').forEach((el) => {
+      ['clip-path', 'fill', 'mask', 'stroke', 'style'].forEach((attr) => {
+        const v = el.getAttribute(attr);
+        if (v && v.includes('url(#')) el.setAttribute(attr, v.replace(/url\(#([^)]+)\)/g, (m, id) => `url(#${ids[id] || id})`));
+      });
+    });
+    box.replaceChildren(clone);
+
+    const vh = window.innerHeight;
+    const barH = barRef.current?.offsetHeight || 52;
+    const menuH = menuRef.current?.offsetHeight || 220;
+    const maxPost = Math.max(120, vh - EDGE * 2 - barH - menuH - GAP * 2);
+    let postH = rr.height;
+    let cropped = false;
+    if (postH > maxPost) {
+      // длинный: убираем низ (реакции, комментарии) и обрезаем
+      clone.querySelectorAll('.post-footer').forEach((el) => { el.style.display = 'none'; });
+      postH = maxPost;
+      cropped = true;
     }
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
+    let top = rr.top;
+    // меню не влезает снизу — поднимаем пост
+    const overflow = top + postH + GAP + menuH + EDGE - vh;
+    if (overflow > 0) top -= overflow;
+    setLayout({ rowLeft: rr.left, rowW: rr.width, cardLeft: cr.left, cardW: cr.width, top, postH, barH, cropped, from: rr.top - top });
+  }, [open, anchorRef]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') handleClose(); };
+    if (!open) { setVisible(false); return undefined; }
+    const raf = 0;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleClose = () => {
+  // показ — только когда всё уже стоит на местах: тогда подъём поста виден как плавное движение
+  useEffect(() => {
+    if (!open || !layout) return undefined;
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    return () => cancelAnimationFrame(r);
+  }, [open, layout]);
+
+  const close = () => {
     setVisible(false);
-    setTimeout(() => {
-      setDragOffset(0);
-      onClose();
-    }, 280);
+    setTimeout(() => onClose(), 220);
   };
 
-  const handlePointerDown = (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const target = e.target.closest('.post-ctx-item');
-    if (target) return;
-
-    dragRef.current.active = true;
-    dragRef.current.startY = e.clientY;
-    dragRef.current.currentY = e.clientY;
-    dragRef.current.pointerId = e.pointerId;
-
-    try { sheetRef.current?.setPointerCapture(e.pointerId); } catch {}
-  };
-
-  const handlePointerMove = (e) => {
-    if (!dragRef.current.active) return;
-    if (e.pointerId !== dragRef.current.pointerId) return;
-    const dy = e.clientY - dragRef.current.startY;
-    if (dy < 0) return;
-    dragRef.current.currentY = e.clientY;
-    setDragOffset(dy);
-  };
-
-  const handlePointerUp = (e) => {
-    if (!dragRef.current.active) return;
-    if (e.pointerId !== dragRef.current.pointerId) return;
-
-    try { sheetRef.current?.releasePointerCapture(e.pointerId); } catch {}
-
-    dragRef.current.active = false;
-    const dy = dragRef.current.currentY - dragRef.current.startY;
-
-    if (dy > 120) {
-      handleClose();
-    } else {
-      setDragOffset(0);
-    }
-  };
+  const act = (fn) => () => { close(); fn?.(); };
 
   if (!open) return null;
 
-  const translateY = visible ? dragOffset : 400;
+  const L = layout;
+  const menuLeft = L ? Math.max(EDGE, Math.min(L.cardLeft, window.innerWidth - EDGE - 250)) : 0;
 
   return createPortal(
-    <div
-      className={`post-ctx-backdrop ${visible ? 'is-visible' : ''}`}
-      onClick={handleClose}
-    >
+    <div className={`pcm ${visible && L ? 'is-visible' : ''}`} onClick={close} onContextMenu={(e) => { e.preventDefault(); close(); }}>
+      <div className="pcm-backdrop" />
+
+      {/* реакции */}
       <div
-        ref={sheetRef}
-        className={`post-ctx-sheet ${visible ? 'is-visible' : ''} ${dragRef.current.active ? 'is-dragging' : ''}`}
-        style={{
-          transform: `translate(-50%, ${translateY}px)`,
-        }}
+        ref={barRef}
+        className="pcm-reactions"
+        style={L ? { left: L.cardLeft, top: Math.max(EDGE, L.top - L.barH - GAP), maxWidth: Math.min(L.cardW + 20, window.innerWidth - L.cardLeft - EDGE) } : { visibility: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
       >
-        <div className="post-ctx-handle" />
-
-        <div className="post-ctx-list">
-          <button
-            className="post-ctx-item"
-            onClick={() => { handleClose(); onShare?.(); }}
-          >
-            <span className="post-ctx-icon"><ShareIcon size={22} /></span>
-            {t('menu.share')}
-          </button>
-
-          {hasCaption && (
+        <div
+          className="pcm-reactions-row"
+          onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY + e.deltaX; }}
+        >
+          {REACTIONS.map((e) => (
             <button
-              className="post-ctx-item"
-              onClick={() => { handleClose(); onCopy?.(); }}
+              key={e}
+              type="button"
+              className={`pcm-emoji ${myEmoji === e ? 'is-mine' : ''}`}
+              onClick={act(() => onReact?.(e))}
             >
-              <span className="post-ctx-icon"><CopyIcon size={22} /></span>
-              {t('menu.copy')}
+              <AppleEmoji emoji={e} />
             </button>
-          )}
-
-          {onTranslate && (
-            <button
-              className="post-ctx-item"
-              onClick={() => { handleClose(); onTranslate(); }}
-            >
-              <span className="post-ctx-icon" />
-              {translated ? t('menu.showOriginal') : t('menu.translate')}
-            </button>
-          )}
-
-          {isAuthor && (
-            <button
-              className="post-ctx-item is-danger"
-              onClick={() => { handleClose(); onDelete?.(); }}
-            >
-              <span className="post-ctx-icon"><TrashIcon size={22} /></span>
-              {t('menu.delete')}
-            </button>
-          )}
+          ))}
         </div>
+                      </div>
+
+      {/* сам пост — «приподнятая» копия на своём месте */}
+      <div
+        className={`pcm-post ${L?.cropped ? 'is-cropped' : ''}`}
+        style={L ? { left: L.rowLeft, top: L.top, width: L.rowW, height: L.postH, '--from': `${L.from}px` } : { visibility: 'hidden' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div ref={cloneBoxRef} />
+      </div>
+
+      {/* действия */}
+      <div
+        ref={menuRef}
+        className="pcm-menu"
+        style={L ? { left: menuLeft, top: L.top + L.postH + GAP } : { visibility: 'hidden' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="pcm-item is-comments" onClick={act(onComments)}>
+          <span className="pcm-icon"><CommentIcon size={22} /></span>{t('post.comment')}
+        </button>
+        {hasCaption && (
+          <button className="pcm-item" onClick={act(onCopy)}>
+            <span className="pcm-icon"><CopyIcon size={22} /></span>{t('menu.copy')}
+          </button>
+        )}
+        {onDownload && (
+          <button className="pcm-item" onClick={act(onDownload)}>
+            <span className="pcm-icon"><DownloadIcon size={22} /></span>{t('post.download')}
+          </button>
+        )}
+        <button className="pcm-item" onClick={act(onShare)}>
+          <span className="pcm-icon"><ShareIcon size={22} /></span>{t('menu.share')}
+        </button>
+        {onTranslate && (
+          <button className="pcm-item" onClick={act(onTranslate)}>
+            <span className="pcm-icon" />{translated ? t('menu.showOriginal') : t('menu.translate')}
+          </button>
+        )}
+        {isAuthor && (
+          <>
+            <div className="pcm-sep" />
+            <button className="pcm-item is-danger" onClick={act(onDelete)}>
+              <span className="pcm-icon"><TrashIcon size={22} /></span>{t('menu.delete')}
+            </button>
+          </>
+        )}
       </div>
     </div>,
     document.body

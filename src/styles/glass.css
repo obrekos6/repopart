@@ -243,3 +243,42 @@
   .liquid-glass .post-ctx-sheet.lg-on,
   .liquid-glass .sheet-menu.lg-on { background: rgba(28, 28, 30, 0.6); }
 }
+
+/* ===== Блик на круглых и капсульных кнопках =====
+   Непрозрачным — только блик. Свет падает под тем же углом, что у стекла */
+.sheet-btn.is-accent,
+.pf-action,
+.profile-setup-submit,
+.profile-setup-avatar-btn,
+.comment-input-send,
+.audio-play,
+.pf-tab.is-active,
+.lb-btn,
+.lb-file-download,
+.pcm-more,
+.modal-file-remove,
+.adm-btn,
+.banned-screen button {
+  box-shadow:
+    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.28),
+    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* жидкое стекло выключено или браузер его не умеет: остаются блик, размытие и прозрачность */
+html:not(.liquid-glass) :is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar, .html-preview-url-bar, .html-preview-toolbar) {
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.8),
+    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.liquid-glass) :is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar, .html-preview-url-bar, .html-preview-toolbar) {
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.4),
+      inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.14),
+      inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.05);
+  }
+}

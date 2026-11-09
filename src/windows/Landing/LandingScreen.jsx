@@ -214,7 +214,7 @@ export default function LandingScreen({ user, loading }) {
             {searchOpen ? (
               <SearchResults query={searchQuery} currentUser={null} readOnly onRequireAuth={guestClick} />
             ) : postsLoading && posts.length === 0 ? (
-              <div className="loading-feed">{t('feed.loading')}</div>
+              null
             ) : (
               <>
                 <PublicationList

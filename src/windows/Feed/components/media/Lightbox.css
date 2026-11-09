@@ -6,7 +6,7 @@
   z-index: 400;
   background: rgba(0, 0, 0, calc(var(--lb-fade, 1)));
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s ease-out;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -93,7 +93,7 @@
   justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.25s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease-out, transform 0.2s ease-out;
 }
 
 .lb-btn:active { transform: scale(0.94); }

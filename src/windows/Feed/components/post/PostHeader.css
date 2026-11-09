@@ -44,3 +44,12 @@
   color: var(--text-secondary);
   font-weight: var(--font-regular);
 }
+/* шапка в пузыре: одно имя жирным, как подпись отправителя */
+.post-header.is-bubble {
+  gap: 4px;
+  padding: 0 0 4px;
+}
+.post-header.is-bubble .post-author { font-size: 15px; line-height: 20px; font-weight: 700; letter-spacing: -0.2px; }
+
+.post-header.is-bubble { padding-bottom: 2px; }
+.post-header.is-bubble .post-author { font-size: 15px; font-weight: 600; }

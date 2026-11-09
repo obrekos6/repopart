@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useT } from '../../lib/i18n';
-import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
-import { useBackButton } from '../../lib/useBackButton';
-import { toPlainText } from '../../lib/richText';
+import Page from '../Feed/components/layout/Page';
+import Avatar from '../Feed/components/post/Avatar';
+import { getProfile } from '../../lib/profilesCache';
+import { ArrowRightIcon } from '../../assets/icons/Icons';
 import CommentList from './components/CommentList';
 import CommentInput from './components/CommentInput';
 import './PostDetailScreen.css';
@@ -12,29 +13,18 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
   const t = useT();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [visible, setVisible] = useState(false);
-  const [closing, setClosing] = useState(false);
 
-  const [dragging, setDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
+  // автор поста — для круглой кнопки справа
+  const [author, setAuthor] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (post.user_id) getProfile(supabase, post.user_id).then((p) => { if (alive && p) setAuthor(p); });
+    return () => { alive = false; };
+  }, [post.user_id]);
+  const authorName = author?.display_name || author?.username || (post.author_email ? post.author_email.split('@')[0] : 'user');
 
-  const dragRef = useRef({
-    startY: 0,
-    currentY: 0,
-    active: false,
-    pointerId: null,
-    lastY: 0,
-    lastT: 0,
-    velocity: 0,
-  });
-  const panelRef = useRef(null);
-  const handleZoneRef = useRef(null);
-
-  const mediaFiles = (post.files || []).filter(
-    (f) => f.type?.startsWith('image/') || f.type?.startsWith('video/')
-  );
-  const hasMedia = mediaFiles.length > 0;
-  const firstMedia = mediaFiles[0];
+  // профиль открывается вместо комментариев (иначе он оказался бы под этим окном)
+  const openProfile = (id) => { onOpenProfile?.(id); onClose(); };
 
   /* load comments */
   const load = useCallback(async () => {
@@ -74,92 +64,6 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
       .subscribe();
     return () => supabase.removeChannel(ch);
   }, [post.id]);
-
-  /* lock body scroll */
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  /* esc */
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') handleClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  /* slide up */
-  useLayoutEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-  }, []);
-
-  const handleClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setVisible(false);
-    setDragging(false);
-    setDragOffset(0);
-    setTimeout(() => onClose(), 320);
-  };
-
-  /* android back button closes */
-  useBackButton(handleClose, true);
-
-  /* ---------- drag to close ---------- */
-  const handleDragStart = (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    dragRef.current.active = true;
-    dragRef.current.startY = e.clientY;
-    dragRef.current.currentY = e.clientY;
-    dragRef.current.lastY = e.clientY;
-    dragRef.current.lastT = performance.now();
-    dragRef.current.velocity = 0;
-    dragRef.current.pointerId = e.pointerId;
-
-    setDragging(true);
-    try { handleZoneRef.current?.setPointerCapture(e.pointerId); } catch {}
-  };
-
-  const handleDragMove = (e) => {
-    if (!dragRef.current.active) return;
-    if (e.pointerId !== dragRef.current.pointerId) return;
-
-    const now = performance.now();
-    const dt = now - dragRef.current.lastT;
-    const dy = e.clientY - dragRef.current.lastY;
-    if (dt > 0) {
-      dragRef.current.velocity = dy / dt;
-    }
-    dragRef.current.lastY = e.clientY;
-    dragRef.current.lastT = now;
-    dragRef.current.currentY = e.clientY;
-
-    const totalDy = e.clientY - dragRef.current.startY;
-    if (totalDy < 0) {
-      setDragOffset(0);
-      return;
-    }
-    setDragOffset(totalDy);
-  };
-
-  const handleDragEnd = (e) => {
-    if (!dragRef.current.active) return;
-    if (e.pointerId !== dragRef.current.pointerId) return;
-
-    try { handleZoneRef.current?.releasePointerCapture(e.pointerId); } catch {}
-    dragRef.current.active = false;
-    setDragging(false);
-
-    const totalDy = dragRef.current.currentY - dragRef.current.startY;
-    const v = dragRef.current.velocity;
-
-    if (totalDy > 60 || v > 0.4) {
-      handleClose();
-    } else {
-      setDragOffset(0);
-    }
-  };
 
   /* ---------- send ---------- */
   const handleSend = async (text) => {
@@ -204,60 +108,33 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
     }
   };
 
-  const panelStyle = dragging
-    ? { transform: `translateY(${dragOffset}px)`, transition: 'none' }
-    : undefined;
-
-  return createPortal(
-    <div className={`post-detail-root ${visible ? 'is-on' : ''}`} style={{ zIndex }}>
-      <div className="post-detail-backdrop" onClick={handleClose} />
-
-      <div
-        ref={panelRef}
-        className={`post-detail-panel ${hasMedia ? '' : 'is-solo'}`}
-        style={panelStyle}
-      >
-        {hasMedia && firstMedia && (
-          <div className="post-detail-media">
-            {firstMedia.type.startsWith('video/') ? (
-              <video src={firstMedia.url} autoPlay muted loop playsInline />
-            ) : (
-              <img src={firstMedia.url} alt={toPlainText(post.name || '')} draggable={false} />
-            )}
-          </div>
-        )}
-
-        <div className="post-detail-sheet">
-          <div
-            ref={handleZoneRef}
-            className="post-detail-handle-zone"
-            onPointerDown={handleDragStart}
-            onPointerMove={handleDragMove}
-            onPointerUp={handleDragEnd}
-            onPointerCancel={handleDragEnd}
-          >
-            <div className="post-detail-handle" />
-          </div>
-
-          <div className="post-detail-scroll">
-            {loading ? (
-              <div className="post-detail-empty">{t('comments.loading')}</div>
-            ) : comments.length === 0 ? (
-              <div className="post-detail-empty">{t('comments.empty')}</div>
-            ) : (
-              <CommentList
-                comments={comments}
-                currentUser={currentUser}
-                onDelete={handleDeleteComment}
-                onOpenProfile={onOpenProfile}
-              />
-            )}
-          </div>
-
-          <CommentInput onSend={handleSend} disabled={!currentUser} user={currentUser} />
-        </div>
-      </div>
-    </div>,
-    document.body
+  // отдельное окно: въезжает справа, как экраны в iOS (блокировку прокрутки и «назад» делает Page)
+  return (
+    <Page
+      title={t('comments.title')}
+      onClose={onClose}
+      zIndex={zIndex}
+      parallax
+      titleCapsule
+      backIcon={<ArrowRightIcon size={22} className="app-page-back-chevron" />}
+      right={(
+        <button type="button" className="sheet-btn app-page-btn post-comments-author" onClick={() => openProfile(post.user_id)} aria-label={authorName}>
+          <Avatar url={author?.avatar_url} name={authorName} seed={post.user_id} size={40} />
+        </button>
+      )}
+      className="post-comments-page"
+      footer={<CommentInput onSend={handleSend} disabled={!currentUser} user={currentUser} />}
+    >
+      {loading ? null : comments.length === 0 ? (
+        <div className="post-detail-empty">{t('comments.empty')}</div>
+      ) : (
+        <CommentList
+          comments={comments}
+          currentUser={currentUser}
+          onDelete={handleDeleteComment}
+          onOpenProfile={openProfile}
+        />
+      )}
+    </Page>
   );
 }

@@ -8,8 +8,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 export default function Tabs({ tabs, active, onChange, className = '' }) {
   const containerRef = useRef(null);
   const [capsule, setCapsule] = useState({ left: 0, width: 0 });
+  const [boxW, setBoxW] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [hoveredTab, setHoveredTab] = useState(null);
+  // капсула летит к новой вкладке: на время перелёта она «стеклянная» и чуть больше
+  const [moving, setMoving] = useState(false);
+  const prevActiveRef = useRef(active);
+  useEffect(() => {
+    if (prevActiveRef.current === active) return undefined;
+    prevActiveRef.current = active;
+    setMoving(true);
+    const id = setTimeout(() => setMoving(false), 380);
+    return () => clearTimeout(id);
+  }, [active]);
 
   const dragActiveRef = useRef(false);
   const skipClickRef = useRef(false);
@@ -42,6 +53,7 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
   const snapCapsuleTo = useCallback((positions, tabId) => {
     const btn = positions.find((p) => p.id === tabId);
     if (btn) setCapsule({ left: btn.left, width: btn.width });
+    if (containerRef.current) setBoxW(containerRef.current.offsetWidth);
   }, []);
 
   useEffect(() => {
@@ -163,15 +175,29 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
     onChange(tabId);
   };
 
+  // содержимое вкладки; inLens — копия внутри капсулы (всегда «выбранная»)
+  const content = (t, on) => (t.icon ? (
+    <>
+      {t.iconActive ? (
+        // обе иконки лежат друг на друге и плавно сменяют друг друга
+        <span className="tab-icon is-dual" aria-hidden>
+          <span className={`tab-icon-layer ${on ? '' : 'is-shown'}`}>{t.icon}</span>
+          <span className={`tab-icon-layer ${on ? 'is-shown' : ''}`}>{t.iconActive}</span>
+        </span>
+      ) : (
+        <span className="tab-icon" aria-hidden>{t.icon}</span>
+      )}
+      <span className="tab-label">{t.label}</span>
+    </>
+  ) : t.label);
+
+  const lifted = (dragging && hoveredTab != null) || moving;
+
   return (
     <div className={`tabs ${className}`} ref={containerRef} onPointerDown={handlePointerDown}>
       <div
-        className={`tabs-capsule ${dragging && hoveredTab != null ? 'is-dragging' : ''}`}
-        style={{
-          left: `${capsule.left}px`,
-          width: `${capsule.width}px`,
-          transform: `scale(${dragging && hoveredTab != null ? 1.08 : 1})`,
-        }}
+        className={`tabs-capsule ${dragging && hoveredTab != null ? 'is-dragging' : ''} ${lifted ? 'is-lifted' : ''}`}
+        style={{ left: `${capsule.left}px`, width: `${capsule.width}px` }}
       />
       {tabs.map((t) => {
         // при перетаскивании выделена вкладка под пальцем; пока её нет (просто
@@ -186,24 +212,31 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
             aria-label={t.label}
             aria-current={active === t.id ? 'page' : undefined}
           >
-            {t.icon ? (
-              <>
-                {/* выбранная вкладка — залитая иконка (iconActive), остальные — контурная */}
-                {t.iconActive ? (
-                  // обе иконки лежат друг на друге и плавно сменяют друг друга
-                  <span className="tab-icon is-dual" aria-hidden>
-                    <span className={`tab-icon-layer ${isVisualActive ? '' : 'is-shown'}`}>{t.icon}</span>
-                    <span className={`tab-icon-layer ${isVisualActive ? 'is-shown' : ''}`}>{t.iconActive}</span>
-                  </span>
-                ) : (
-                  <span className="tab-icon" aria-hidden>{t.icon}</span>
-                )}
-                <span className="tab-label">{t.label}</span>
-              </>
-            ) : t.label}
+            {content(t, isVisualActive)}
           </button>
         );
       })}
+
+      {/* Лупа: внутри капсулы те же вкладки, но «выбранные» (синие) и чуть крупнее.
+          Окно едет вместе с капсулой, а содержимое — навстречу, поэтому стоит на месте. */}
+      <div
+        className={`tabs-lens ${dragging && hoveredTab != null ? 'is-dragging' : ''} ${lifted ? 'is-lifted' : ''}`}
+        style={{ left: `${capsule.left}px`, width: `${capsule.width}px` }}
+        aria-hidden
+      >
+        <div
+          className="tabs-lens-inner"
+          style={{
+            left: `${-capsule.left}px`,
+            width: `${boxW}px`,
+            transformOrigin: `${capsule.left + capsule.width / 2}px 50%`,
+          }}
+        >
+          {tabs.map((t) => (
+            <span key={t.id} className="tab is-active">{content(t, true)}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

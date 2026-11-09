@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useT, useLang } from '../../lib/i18n';
 import { useBackButton } from '../../lib/useBackButton';
+import { usePushParallax } from '../../lib/usePushParallax';
 import { colorFromString, initialFromString } from '../../lib/avatar';
 import { LogoutIcon, BackIcon, VerifiedIcon, CameraIcon } from '../../assets/icons/Icons';
 import Avatar from '../Feed/components/post/Avatar';
@@ -10,10 +11,11 @@ import PublicationList from '../Feed/components/post/PublicationList';
 import ProfileSetup from './components/ProfileSetup';
 import './ProfileScreen.css';
 
-const VERIFIED_EMAILS = ['obrekos6@gmail.com', 'andrey09012014@gmail.com'];
-
-const COLLAPSE_DISTANCE = 110; 
-const PULL_RANGE = 180;        
+const COLLAPSE_DISTANCE = 110;
+const PULL_RESISTANCE = 0.55;  // шапка идёт за пальцем медленнее него
+const PULL_TRIGGER = 60;       // столько px шапка проходит до раскрытия фото
+const MODE_MS = 380;
+const CLOSE_TRIGGER = 24;      // столько px вверх сворачивают фото
 const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 const SHEET_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
@@ -64,12 +66,13 @@ export default function ProfileScreen({
   const [mode, setMode] = useState('normal'); 
 
   const scrollRef = useRef(null);
-  const nameRef = useRef(null);
   const headerRef = useRef(null);
   const heroRef = useRef(null);
   const closingRef = useRef(false);
   const modeRef = useRef('normal');
   const panelRef = useRef(null);
+  // чужой профиль: экран под ним отъезжает влево, как в iOS
+  const pushBack = usePushParallax(panelRef, pushed && visible);
   const panelDragRef = useRef({
     active: false, pointerId: null, startY: 0, lastY: 0, lastT: 0, velocity: 0, dy: 0,
   });
@@ -85,25 +88,67 @@ export default function ProfileScreen({
     heroRef.current?.style.setProperty(name, value);
   }, []);
 
-  const setDragging = useCallback((on) => {
-    [panelRef.current, headerRef.current, heroRef.current].forEach((n) => {
-      if (!n) return;
-      if (on) n.setAttribute('data-dragging', '');
-      else n.removeAttribute('data-dragging');
-    });
-  }, []);
-
-  const animTimerRef = useRef(null);
+  /*
+   * Смена режима (круг ⇄ фото на весь экран). Раскладка меняется сразу, а движение
+   * показывается трансформациями: их считает видеокарта, поэтому нет рывков,
+   * как при анимации размеров, когда браузер каждый кадр пересчитывал весь список.
+   */
+  const modeAnims = useRef([]);
   const applyMode = useCallback((next) => {
+    const panel = panelRef.current;
+    const scroller = scrollRef.current;
+    const prev = modeRef.current;
     modeRef.current = next;
     setMode(next);
-    const panel = panelRef.current;
-    if (panel) {
-      panel.setAttribute('data-anim', '');
-      clearTimeout(animTimerRef.current);
-      animTimerRef.current = setTimeout(() => panel.removeAttribute('data-anim'), 380);
+    const commit = () => {
+      setVar('--t', next === 'full' ? '1' : '0');
+      setVar('--pull', '0px');
+    };
+    if (!panel || !scroller || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { commit(); return; }
+
+    const avatar = panel.querySelector('.pf-avatar');
+    const name = panel.querySelector('.pf-name');
+    const sub = panel.querySelector('.pf-sub');
+    const scrim = panel.querySelector('.pf-avatar-scrim');
+    const moving = [avatar, name, sub, ...[...scroller.children].slice(1)];
+
+    // где всё находится сейчас (в том числе посреди прошлой анимации)
+    const before = moving.map((el) => el.getBoundingClientRect());
+    const px = (el) => parseFloat(getComputedStyle(el).fontSize);
+    const nameFont = px(name);
+    const nameColor = getComputedStyle(name).color;
+    const subColor = getComputedStyle(sub).color;
+    const scrimFrom = getComputedStyle(scrim).opacity;
+
+    modeAnims.current.forEach((a) => a.cancel());
+    commit();
+
+    const options = { duration: MODE_MS, easing: SHEET_EASE };
+    const anims = [];
+    moving.forEach((el, i) => {
+      const from = before[i];
+      const to = el.getBoundingClientRect();
+      if (!to.width || !to.height) return;
+      const cs = getComputedStyle(el);
+      const base = new DOMMatrix(cs.transform === 'none' ? '' : cs.transform);
+      let sx = 1;
+      let sy = 1;
+      if (el === avatar) { sx = from.width / to.width; sy = from.height / to.height; }
+      if (el === name) { sx = nameFont / px(name); sy = sx; }
+      const dx = from.left - (to.left - base.m41) - sx * base.m41;
+      const dy = from.top - (to.top - base.m42) - sy * base.m42;
+      anims.push(el.animate(
+        [{ translate: `${dx}px ${dy}px`, scale: `${sx} ${sy}` }, { translate: '0px 0px', scale: '1 1' }],
+        options,
+      ));
+    });
+    if (prev !== next) {
+      anims.push(avatar.animate({ borderRadius: next === 'full' ? ['50%', '0%'] : ['0%', '50%'] }, options));
     }
-    setVar('--t', next === 'full' ? '1' : '0');
+    anims.push(scrim.animate({ opacity: [scrimFrom, getComputedStyle(scrim).opacity] }, options));
+    anims.push(name.animate({ color: [nameColor, getComputedStyle(name).color] }, options));
+    anims.push(sub.animate({ color: [subColor, getComputedStyle(sub).color] }, options));
+    modeAnims.current = anims;
   }, [setVar]);
 
   const onPanelDragStart = (e) => {
@@ -240,45 +285,51 @@ export default function ProfileScreen({
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(writeScroll); };
 
-    // потягивание пальцем
+    // потягивание пальцем: шапка идёт за пальцем, а на пороге фото раскрывается
+    // само, не дожидаясь, пока палец отпустят
     let startY = 0;
-    let pulling = false;     // палец сейчас тянет фото
+    let pulling = false;     // палец сейчас тянет шапку
     let canPull = false;     // жест начался с самого верха (или в режиме фото)
-    let t = 0;
-
-    const rubber = (x) => (x < 0 ? 0 : x > 1 ? 1 + (x - 1) * 0.25 : x); // сопротивление у краёв
+    let snapped = false;     // за этот жест режим уже сменился
 
     const onStart = (e) => {
       if (e.touches.length !== 1) { canPull = false; return; }
       startY = e.touches[0].clientY;
       pulling = false;
+      snapped = false;
       canPull = modeRef.current === 'full' || el.scrollTop <= 0;
     };
 
     const onMove = (e) => {
       if (!canPull || e.touches.length !== 1) return;
+      if (snapped) { if (e.cancelable) e.preventDefault(); return; }
       const dy = e.touches[0].clientY - startY;
-      if (modeRef.current === 'normal') {
-        if (!pulling && (dy <= 4 || el.scrollTop > 0)) { if (dy < -4) canPull = false; return; }
-        t = rubber(dy / PULL_RANGE);
-      } else {
-        if (!pulling && dy >= -4) return;
-        t = rubber(1 + dy / PULL_RANGE);
+      if (modeRef.current === 'full') {
+        if (dy >= -4) return;
+        if (e.cancelable) e.preventDefault();
+        if (dy < -CLOSE_TRIGGER) { snapped = true; applyMode('normal'); }
+        return;
       }
+      if (!pulling && (dy <= 4 || el.scrollTop > 0)) { if (dy < -4) canPull = false; return; }
       if (e.cancelable) e.preventDefault();
-      if (!pulling) { pulling = true; setDragging(true); }
-      setVar('--t', String(Math.min(1, t)));
+      pulling = true;
+      const pull = Math.max(0, dy) * PULL_RESISTANCE;
+      if (pull >= PULL_TRIGGER) {
+        snapped = true;
+        pulling = false;
+        el.scrollTop = 0;
+        applyMode('full');
+        return;
+      }
+      setVar('--pull', `${pull}px`);
     };
 
     const onEnd = () => {
       canPull = false;
       if (!pulling) return;
       pulling = false;
-      setDragging(false);
-      // в режим фото — если вытянули больше трети; обратно — если стянули больше трети
-      const goFull = modeRef.current === 'normal' ? t > 0.33 : t > 0.67;
-      if (goFull) el.scrollTop = 0;
-      applyMode(goFull ? 'full' : 'normal');
+      // порог не достигнут — шапка плавно возвращается
+      applyMode('normal');
     };
 
     // колёсико и тачпад: вверх у самого верха — фото, вниз в режиме фото — обратно
@@ -316,7 +367,7 @@ export default function ProfileScreen({
       el.removeEventListener('touchend', onEnd);
       el.removeEventListener('touchcancel', onEnd);
     };
-  }, [applyMode, setVar, setDragging]);
+  }, [applyMode, setVar]);
 
   /* тап по аватарке: в свёрнутой шапке — наверх; наверху — открыть/закрыть фото */
   const onAvatarTap = () => {
@@ -362,8 +413,9 @@ export default function ProfileScreen({
       el.style.transition = `transform 300ms ${SHEET_EASE}`;
       el.style.transform = 'translateY(100%)';
     }
+    if (pushed) pushBack();
     setVisible(false);
-    setTimeout(() => onClose?.(), 300);
+    setTimeout(() => onClose?.(), pushed ? 350 : 300);
   };
 
   const handleEditComplete = () => {
@@ -375,22 +427,10 @@ export default function ProfileScreen({
 
 
 
-  const isVerified = profile?.email && VERIFIED_EMAILS.includes(profile.email) || (user?.email && VERIFIED_EMAILS.includes(user.email));
+  const isVerified = !!profile?.is_verified;
   const displayName = profile?.display_name || profile?.username || 'user';
   const username = profile?.username || '';
   const avatarUrl = profile?.avatar_url;
-
-  // ширина имени в шапке (17px) — чтобы аватарка встала ровно слева от него
-  useEffect(() => {
-    const el = nameRef.current;
-    if (!el) return;
-    const style = getComputedStyle(el);
-    const font = parseFloat(style.fontSize) || 22;
-    const icon = isVerified ? 24 : 0; // значок 18px + отступ 6px не масштабируются
-    const w = (el.offsetWidth - icon) * (17 / font) + icon;
-    setVar('--nw', `${Math.ceil(w)}px`);
-  }, [displayName, isVerified, setVar]);
-
 
   return createPortal(
     <div
@@ -421,7 +461,12 @@ export default function ProfileScreen({
 
         <header className="profile-screen-header" ref={headerRef}>
           {!forceSetup && (!asPage || pushed) ? (
-            <button className="profile-screen-btn" onClick={handleClose} aria-label={t('common.back')}>
+            <button className="profile-screen-btn sheet-btn" onClick={handleClose} aria-label={t('common.back')}>
+              <BackIcon size={22} />
+            </button>
+          ) : isTabPage ? (
+            // экран вкладки: «Назад» выезжает из-за левого края на место поиска
+            <button className="profile-screen-btn sheet-btn tab-back-btn" onClick={onClose} aria-label={t('common.back')} tabIndex={active ? 0 : -1}>
               <BackIcon size={22} />
             </button>
           ) : (
@@ -434,6 +479,10 @@ export default function ProfileScreen({
               aria-label={t('profile.logout')}
             >
               <LogoutIcon size={20} />
+            </button>
+          ) : isOwnProfile && asPage ? (
+            <button className="profile-screen-btn sheet-btn profile-screen-edit" onClick={() => setEditing(true)} tabIndex={active ? 0 : -1}>
+              {t('profile.edit')}
             </button>
           ) : (
             <div style={{ width: 40 }} /> // Пустая заглушка для выравнивания
@@ -451,7 +500,7 @@ export default function ProfileScreen({
             <div className="pf-actions">
               <button className="pf-action" onClick={() => setEditing(true)}>
                 <CameraIcon size={24} />
-                <span>{t('profile.edit')}</span>
+                <span>{t('profile.changePhoto')}</span>
               </button>
             </div>
           )}
@@ -515,12 +564,12 @@ export default function ProfileScreen({
             <span className="pf-avatar-scrim" />
           </button>
 
-          <div className="pf-name" ref={nameRef}>
+          <div className="pf-name">
             <span className="pf-name-text">{displayName}</span>
             {isVerified && <VerifiedIcon size={18} className="pf-verified" />}
           </div>
           <div className="pf-sub">
-            {loading ? '\u00A0' : t('profile.publications', { n: posts.length })}
+            {loading ? '\u00A0' : `${username ? `@${username} · ` : ''}${t('profile.publications', { n: posts.length })}`}
           </div>
         </div>
 

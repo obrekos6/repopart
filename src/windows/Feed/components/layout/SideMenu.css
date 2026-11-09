@@ -7,7 +7,7 @@
   opacity: 0;
   pointer-events: none;
   z-index: 90;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s ease-out;
 }
 
 .side-menu-overlay.is-open {
@@ -61,7 +61,7 @@
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease-out;
 }
 
 .side-menu-item:hover,

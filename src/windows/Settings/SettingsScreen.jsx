@@ -1,22 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useSetting, APP_VERSION } from '../../lib/settings';
 import { isLiquidGlassSupported, setLiquidGlassEnabled } from '../../lib/liquidGlass';
 import Page from '../Feed/components/layout/Page';
 import Avatar from '../Feed/components/post/Avatar';
 import { useT, UI_LANGS } from '../../lib/i18n';
-import {
-  BellIcon,
-  LogoutIcon,
-  ArrowRightIcon,
-} from '../../assets/icons/Icons';
+import { isAdmin } from '../../lib/admin';
+import { invalidateProfile } from '../../lib/profilesCache';
+import { ArrowRightIcon } from '../../assets/icons/Icons';
 import './SettingsScreen.css';
-
-/*
- * У «Оформления», «Устройств» и «Языка» значков пока нет — нужных иконок
- * (palette, laptop, globe) нет в проекте; когда появятся из Telegram iOS kit,
- * их можно передать в <Row icon=…>.
- */
 
 export const TRANSLATE_LANGS = [
   ['ru', 'Русский', 'Russian'],
@@ -237,6 +229,75 @@ function LanguagePage({ onClose }) {
   );
 }
 
+/* ---------- админ-панель ---------- */
+function AdminPage({ me, onClose }) {
+  const t = useT();
+  const [query, setQuery] = useState('');
+  const [users, setUsers] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const timer = setTimeout(async () => {
+      let q = supabase.from('profiles').select('*').limit(50);
+      // символы, которые в фильтре Supabase имеют особый смысл, убираем
+      const text = query.trim().replace(/^@/, '').replace(/[%_,()*\\]/g, '');
+      if (text) q = q.or(`username.ilike.%${text}%,display_name.ilike.%${text}%`);
+      const { data } = await q.order('created_at', { ascending: false });
+      if (alive) setUsers(data || []);
+    }, 250);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [query]);
+
+  const setFlag = async (u, field, value) => {
+    if (field === 'is_banned' && value && !window.confirm(t('admin.confirmBan', { name: u.display_name || u.username || '' }))) return;
+    const { data, error } = await supabase.from('profiles').update({ [field]: value }).eq('id', u.id).select();
+    // без прав база не вернёт ошибку, а просто не изменит ни одной строки
+    if (error || !data?.length) { alert(t('admin.fail')); return; }
+    invalidateProfile(u.id);
+    setUsers((list) => list.map((x) => (x.id === u.id ? data[0] : x)));
+  };
+
+  return (
+    <Page title={t('admin.title')} onClose={onClose}>
+      <input
+        className="adm-search"
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t('admin.search')}
+        aria-label={t('admin.search')}
+      />
+      {users && users.length === 0 && <div className="st-footer">{t('admin.empty')}</div>}
+      {users && users.length > 0 && (
+        <div className="st-group">
+          {users.map((u) => {
+            const name = u.display_name || u.username || u.id.slice(0, 6);
+            return (
+              <div className="adm-user" key={u.id}>
+                <Avatar url={u.avatar_url} name={name} seed={u.id} size={44} />
+                <span className="st-row-text">
+                  <span className="st-row-label">{name}</span>
+                  <span className="st-row-sub">{u.username ? `@${u.username}` : ''}{u.is_banned ? ` · ${t('admin.banned')}` : ''}</span>
+                </span>
+                <span className="adm-actions">
+                  <button type="button" className={`adm-btn ${u.is_verified ? 'is-on' : ''}`} onClick={() => setFlag(u, 'is_verified', !u.is_verified)}>
+                    {u.is_verified ? t('admin.unverify') : t('admin.verify')}
+                  </button>
+                  {u.id !== me?.id && (
+                    <button type="button" className="adm-btn is-danger" onClick={() => setFlag(u, 'is_banned', !u.is_banned)}>
+                      {u.is_banned ? t('admin.unban') : t('admin.ban')}
+                    </button>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Page>
+  );
+}
+
 /* ---------- главный экран настроек ---------- */
 export default function SettingsScreen({ user, profile, active, slide, onClose, onOpenProfile, onOpenNotifications, onLogout }) {
   const t = useT();
@@ -247,12 +308,16 @@ export default function SettingsScreen({ user, profile, active, slide, onClose, 
   const name = profile?.display_name || profile?.username || t('st.profileFallback');
   const trName = TRANSLATE_LANGS.find(([c]) => c === translateTo)?.[1] || 'Русский';
   const uiName = UI_LANGS.find(([c]) => c === (lang || 'ru'))?.[1] || 'Русский';
+  // имя в шапке проявляется, пока блок с аватаркой уезжает вверх
+  const onBodyScroll = (e) => {
+    e.currentTarget.parentElement.style.setProperty('--p', String(Math.min(1, e.currentTarget.scrollTop / 110)));
+  };
 
   return (
     <>
-      <Page title={t('st.title')} pushed={false} active={active} slide={slide} onClose={onClose}>
+      <Page title={name} pushed={false} active={active} slide={slide} onClose={onClose} className="settings-page" onBodyScroll={onBodyScroll}>
         <button type="button" className="st-me" onClick={onOpenProfile}>
-          <Avatar url={profile?.avatar_url} name={name} seed={user?.id} size={96} />
+          <Avatar url={profile?.avatar_url} name={name} seed={user?.id} size={112} />
           <span className="st-me-name">{name}</span>
           <span className="st-me-sub">
             {[user?.email, profile?.username && `@${profile.username}`].filter(Boolean).join(' • ')}
@@ -263,14 +328,20 @@ export default function SettingsScreen({ user, profile, active, slide, onClose, 
           <Row label={t('st.appearance')}
             sub={glass && isLiquidGlassSupported() ? t('st.appearanceSubOn') : t('st.appearanceSub')}
             onClick={() => setSub('appearance')} />
-          <Row icon={<BellIcon size={20} />} color="red" label={t('st.notifications')}
+          <Row label={t('st.notifications')}
             sub={t('st.notificationsSub')} onClick={onOpenNotifications} />
           <Row label={t('st.devices')} sub={t('st.devicesSub')} onClick={() => setSub('devices')} />
           <Row label={t('st.language')} sub={t('st.languageSub', { ui: uiName, tr: trName })} onClick={() => setSub('language')} />
         </Group>
 
+        {isAdmin(user) && (
+          <Group>
+            <Row label={t('admin.title')} sub={t('admin.sub')} onClick={() => setSub('admin')} />
+          </Group>
+        )}
+
         <Group>
-          <Row icon={<LogoutIcon size={18} />} color="gray" label={t('st.logout')} onClick={onLogout} danger />
+          <Row label={t('st.logout')} onClick={onLogout} danger />
         </Group>
 
         <div className="st-version">{t('st.version', { v: APP_VERSION })}</div>
@@ -279,6 +350,7 @@ export default function SettingsScreen({ user, profile, active, slide, onClose, 
       {active && sub === 'appearance' && <AppearancePage onClose={() => setSub(null)} />}
       {active && sub === 'devices' && <DevicesPage onClose={() => setSub(null)} />}
       {active && sub === 'language' && <LanguagePage onClose={() => setSub(null)} />}
+      {active && sub === 'admin' && isAdmin(user) && <AdminPage me={user} onClose={() => setSub(null)} />}
     </>
   );
 }

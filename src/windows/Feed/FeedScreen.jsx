@@ -15,6 +15,7 @@ import CreateRepoModal from './components/modals/CreateRepoModal';
 import PublicationList from './components/post/PublicationList';
 import PostDetailScreen from '../Post/PostDetailScreen';
 import ProfileScreen from '../Profile/ProfileScreen';
+import PartsViewer from './components/media/PartsViewer';
 import SettingsScreen from '../Settings/SettingsScreen';
 import './FeedScreen.css';
 
@@ -25,7 +26,7 @@ const POSTS_PER_PAGE = 10;
 export default function FeedScreen() {
   const t = useT();
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [tab, setTab] = useState('for-you');
@@ -37,6 +38,7 @@ export default function FeedScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [openPost, setOpenPost] = useState(null);
+  const [parts, setParts] = useState(null); // { postId, mediaIndex } — открытый просмотр Parts
 
   const [myProfile, setMyProfile] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null); // Для чужих профилей
@@ -116,8 +118,6 @@ export default function FeedScreen() {
   const load = useCallback(async (reset = false) => {
     if (!reset && !hasMore) return;
 
-    const reqId = ++requestIdRef.current;
-
     if (reset) {
       loadingRef.current = true;
       setPosts([]);
@@ -128,6 +128,11 @@ export default function FeedScreen() {
       loadingRef.current = true;
       setLoading(true);
     }
+
+    // номер запроса — только после проверки «уже грузится»: раньше повторный
+    // вызов во время загрузки увеличивал номер, первая загрузка считалась
+    // устаревшей и не снимала флаг, и подгрузка вставала навсегда
+    const reqId = ++requestIdRef.current;
 
     const offset = reset ? 0 : posts.length;
     const data = await loadPosts(tab, POSTS_PER_PAGE, offset);
@@ -205,6 +210,8 @@ export default function FeedScreen() {
   };
 
   const handleNavClick = (action) => {
+    // лента уменьшается к середине экрана, а не к середине всей длинной ленты
+    document.documentElement.style.setProperty('--feed-oy', `${window.scrollY + window.innerHeight / 2}px`);
     // вкладка закрывает открытые поверх экраны (поиск, уведомления, чужой профиль)
     closeSearch();
     setNotifOpen(false);
@@ -235,7 +242,7 @@ export default function FeedScreen() {
   return (
     <>
       <div
-        className={`app ${activeNav !== 'feed' || notifOpen || profileUserId ? 'has-side-page' : ''}`}
+        className={`app ${activeNav !== 'feed' || notifOpen || profileUserId ? 'has-side-page' : ''} ${activeNav !== 'feed' ? 'has-tab-page' : ''}`}
         style={{ '--nav-shift': `${-navIndex * 100}%` }}
       >
         <div className="app-bg" />
@@ -304,14 +311,16 @@ export default function FeedScreen() {
                 onOpenProfile={handleOpenProfile}
               />
             ) : loading && posts.length === 0 ? (
-              <div className="loading-feed">{t('feed.loading')}</div>
+              null
             ) : (
               <>
                 <PublicationList
+                  withAds
                   publications={posts}
                   currentUser={currentUser}
                   onOpenPost={handleOpenPost}
                   onOpenProfile={handleOpenProfile}
+                  onOpenParts={(post, mediaIndex) => setParts({ postId: post.id, mediaIndex })}
                 />
                 {hasMore && <div ref={sentinelRef} className="load-more-sentinel" />}
               </>
@@ -342,9 +351,23 @@ export default function FeedScreen() {
         <CreateRepoModal onClose={() => setModalOpen(false)} onCreate={() => load(true)} />
       )}
 
+      {parts && (
+        <PartsViewer
+          posts={posts}
+          start={parts}
+          currentUser={currentUser}
+          hasMore={hasMore}
+          onLoadMore={() => load(false)}
+          onClose={() => setParts(null)}
+          onOpenComments={handleOpenPost}
+          onOpenProfile={handleOpenProfile}
+        />
+      )}
+
       {openPost && currentUser && (
         <PostDetailScreen
           post={openPost}
+          zIndex={parts ? 450 : undefined}
           currentUser={currentUser}
           onClose={() => setOpenPost(null)}
           onOpenProfile={handleOpenProfile}

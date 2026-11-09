@@ -1,0 +1,15 @@
+/* эмодзи в строке текста — по высоте строки */
+.apple-emoji {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.22em;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* в реакции — 24×24 по макету */
+.post-reaction-emoji .apple-emoji { display: block; width: 24px; height: 24px; }
+/* в панели реакций меню */
+.pcm-emoji .apple-emoji { display: block; width: 32px; height: 32px; margin: 4px; }

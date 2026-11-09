@@ -33,7 +33,7 @@
   /* ===== Тёмная тема (по умолчанию) ===== */
   --bg-primary: #000000;
   --bg-card: #1C1C1E;         /* iOS Secondary System Background */
-  --bg-post: #1C1C1E;
+  --bg-post: #1C1C1D;
   --text-primary: #FFFFFF;
   --text-secondary: rgba(235, 235, 245, 0.6);
   --bg-search: rgba(118, 118, 128, 0.24);

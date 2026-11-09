@@ -20,12 +20,15 @@
 const SELECTOR = [
   '.menu-btn',
   '.double-btn',
+  '.sheet-btn:not(.is-accent)',
+  '.parts-back',
   '.tabs',
   '.rt-toolbar',
   '.html-preview-toolbar',
   '.html-preview-url-bar',
   '.html-preview-btn',
   '.app-page-btn',
+  '.app-page-title-capsule',
   '.post-ctx-sheet',
   '.sheet-menu',
 ].join(',');

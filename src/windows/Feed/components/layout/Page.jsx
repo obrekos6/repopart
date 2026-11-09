@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useT } from '../../../../lib/i18n';
 import { createPortal } from 'react-dom';
 import { useBackButton } from '../../../../lib/useBackButton';
+import { usePushParallax } from '../../../../lib/usePushParallax';
 import { BackIcon } from '../../../../assets/icons/Icons';
 import '../media/HtmlPreviewScreen.css';
 import './Sheet.css';
@@ -12,10 +13,14 @@ import './Page.css';
  * въезжает справа. Сверху стеклянная кнопка «Назад», заголовок и подзаголовок.
  * pushed=false — экран вкладки (появляется без анимации, без кнопки «Назад»).
  */
-export default function Page({ title, subtitle, onClose, children, header, right, pushed = true, active = true, slide = 0 }) {
+export default function Page({ title, subtitle, onClose, children, header, footer, right, pushed = true, active = true, slide = 0, zIndex, parallax = false, className = '', backIcon, titleCapsule = false, onBodyScroll }) {
   const t = useT();
   const [shown, setShown] = useState(!pushed);
   const closingRef = useRef(false);
+  const rootRef = useRef(null);
+  // экран под окном отъезжает влево вместе с въездом окна
+  const pushBack = usePushParallax(rootRef, pushed && shown);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (!pushed) return undefined;
@@ -34,16 +39,25 @@ export default function Page({ title, subtitle, onClose, children, header, right
     if (closingRef.current) return;
     closingRef.current = true;
     if (!pushed) { closingRef.current = false; onClose(); return; }
-    setShown(false);
-    setTimeout(() => onClose(), 320);
-  }, [onClose, pushed]);
+    pushBack();
+    setClosing(true);
+    setTimeout(() => onClose(), 350);
+  }, [onClose, pushed, pushBack]);
 
   useBackButton(handleClose, pushed ? true : active);
 
+  useEffect(() => {
+    if (!parallax) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') handleClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [parallax, handleClose]);
+
   return createPortal(
     <div
-      className={`app-page ${pushed ? 'is-pushed' : 'is-tab'} ${shown ? 'is-shown' : ''} ${!pushed && !active ? 'is-inactive' : ''}`}
-      style={!pushed ? { transform: `translateX(${slide * 100}%)` } : undefined}
+      ref={rootRef}
+      className={`app-page ${pushed ? 'is-pushed' : 'is-tab'} ${shown && !closing ? 'is-shown' : ''} ${!pushed && !active ? 'is-inactive' : ''} ${className}`}
+      style={!pushed ? { transform: `translateX(${slide * 100}%)` } : (zIndex ? { zIndex } : undefined)}
       role="dialog"
       aria-label={title}
       aria-hidden={!pushed && !active ? true : undefined}
@@ -51,13 +65,16 @@ export default function Page({ title, subtitle, onClose, children, header, right
       <header className="app-page-header">
         {pushed ? (
           <button type="button" className="sheet-btn app-page-btn" onClick={handleClose} aria-label={t('common.back')}>
-            <BackIcon size={22} />
+            {backIcon || <BackIcon size={22} />}
           </button>
         ) : (
-          <div className="app-page-spacer" />
+          // экран вкладки: «Назад» выезжает из-за левого края на место поиска
+          <button type="button" className="sheet-btn app-page-btn tab-back-btn" onClick={onClose} aria-label={t('common.back')} tabIndex={active ? 0 : -1}>
+            <BackIcon size={22} />
+          </button>
         )}
         <div className="html-preview-title">
-          <span className="html-preview-title-text">{title}</span>
+          <span className={`html-preview-title-text ${titleCapsule ? 'sheet-btn app-page-title-capsule' : ''}`}>{title}</span>
           {subtitle && <span className="html-preview-subtitle">{subtitle}</span>}
         </div>
         {right || <div className="app-page-spacer" />}
@@ -65,7 +82,8 @@ export default function Page({ title, subtitle, onClose, children, header, right
 
       {header}
 
-      <div className="app-page-body">{children}</div>
+      <div className="app-page-body" onScroll={onBodyScroll}>{children}</div>
+      {footer}
     </div>,
     document.body
   );

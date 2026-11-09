@@ -4,15 +4,23 @@ import { VerifiedIcon } from '../../../../assets/icons/Icons';
 import Avatar from './Avatar';
 import './PostHeader.css';
 
-const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
-
-export default function PostHeader({ author, userId, displayName, createdAt, authorEmail, onOpenProfile }) {
-  const isVerified = authorEmail && VERIFIED_EMAILS.includes(authorEmail);
+export default function PostHeader({ author, userId, displayName, createdAt, onOpenProfile, bubble = false }) {
+  const isVerified = !!author?.is_verified;
 
   const handleClick = (e) => {
     e.stopPropagation();
     if (onOpenProfile) onOpenProfile(userId);
   };
+
+  // в пузыре поста: только имя жирным (аватар снаружи, время внизу)
+  if (bubble) {
+    return (
+      <div className="post-header is-bubble" onClick={handleClick} style={{ cursor: onOpenProfile ? 'pointer' : 'default' }}>
+        <span className="post-author">{displayName}</span>
+        {isVerified && <VerifiedIcon size={15} className="post-verified" />}
+      </div>
+    );
+  }
 
   return (
     <div className="post-header" onClick={handleClick} style={{ cursor: onOpenProfile ? 'pointer' : 'default' }}>

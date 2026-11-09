@@ -94,8 +94,8 @@
 }
 
 /* плавная смена контурной и залитой иконки, цвета и толщины подписи */
-.tabs.tabbar .tab { transition: color 0.25s ease; }
-.tabs.tabbar .tab-label { transition: font-weight 0.2s ease; }
+.tabs.tabbar .tab { transition: color 0.25s ease-out; }
+.tabs.tabbar .tab-label { transition: font-weight 0.2s ease-out; }
 
 .tabs.tabbar .tab-icon.is-dual {
   position: relative;
@@ -110,10 +110,35 @@
   justify-content: center;
   opacity: 0;
   transform: scale(0.85);
-  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(.32, .72, 0, 1);
+  transition: opacity 0.22s ease-out, transform 0.3s cubic-bezier(.32, .72, 0, 1);
 }
 
 .tabs.tabbar .tab-icon-layer.is-shown {
   opacity: 1;
   transform: scale(1);
 }
+
+/* узкие экраны: вкладки делят ширину поровну, подписи обрезаются */
+@media (max-width: 380px) {
+  .tabbar-wrap { padding-left: 10px; padding-right: 10px; }
+  .tabs.tabbar .tab { min-width: 0; flex: 1 1 0; padding-left: 4px; padding-right: 4px; }
+  .tabs.tabbar .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* совсем узкие — только иконки */
+@media (max-width: 260px) {
+  .tabs.tabbar { --tabs-h: 50px; }
+  .tabs.tabbar .tab-label { display: none; }
+}
+
+@media (max-width: 220px) {
+  .tabbar-wrap { padding-left: 6px; padding-right: 6px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .tabs.tabbar { --tabs-h: 44px; }
+  .tabs.tabbar .tab-label { display: none; }
+  .tabs.tabbar .tab-icon { font-size: 20px; height: 24px; line-height: 24px; }
+}
+
+/* лупа капсулы в нижней панели */
+.tabs.tabbar .tabs-lens { top: 3px; height: calc(var(--tabs-h) - 6px); border-radius: 100px; }
+.tabs.tabbar .tabs-lens-inner { top: -3px; padding: 3px 4px; }
+.tabs.tabbar .tabs-lens-inner .tab { color: var(--accent); }

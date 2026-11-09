@@ -9,7 +9,7 @@ export async function getProfile(supabase, userId) {
 
   const promise = supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('*')
     .eq('id', userId)
     .maybeSingle()
     .then(({ data }) => {

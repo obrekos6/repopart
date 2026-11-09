@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useT } from '../../../../lib/i18n';
 import { supabase } from '../../../../lib/supabaseClient';
 import { getProfile } from '../../../../lib/profilesCache';
-import { HeartFilledIcon, EyeIcon, CommentIcon, ArrowRightIcon, DownloadIcon } from '../../../../assets/icons/Icons';
+import { EyeIcon, CommentIcon, ArrowRightIcon, DownloadIcon } from '../../../../assets/icons/Icons';
 import Avatar from './Avatar';
+import { AppleEmoji } from '../../../../lib/appleEmoji';
 import './PostFooter.css';
 
 const formatNumber = (n) => {
@@ -22,10 +23,14 @@ const plural = (n, forms) => {
 
 export default function PostFooter({ 
   views, 
-  likes, 
-  isLiked, 
+  time,
+  inlineMeta = false,
+  hideMeta = false,
+  author = '',
+  reacts = {},
+  myEmoji,
   burst, 
-  onLike, 
+  onReact,
   postId, 
   files = [],
   onOpenComments,
@@ -126,31 +131,32 @@ export default function PostFooter({
   return (
     <div className="post-footer">
       
-      <div className="post-stats-row">
-        <button
-          className={`post-action like-btn ${isLiked ? 'is-liked' : ''} ${burst ? 'is-bursting' : ''}`}
-          onClick={(e) => { e.stopPropagation(); onLike?.(); }}
-          aria-label={t('post.like')}
-        >
-          <div className="like-icon-wrapper">
-            <HeartFilledIcon size={20} className="like-icon" />
+      {/* реакции капсулами слева, просмотры мелко справа — как в постах каналов iOS */}
+      <div className={`post-stats-row ${inlineMeta ? 'is-inline' : ''} ${hideMeta && !Object.keys(reacts).length ? 'is-empty' : ''}`}>
+        {/* реакции появляются плавно: высота растёт от нуля */}
+        <div className={`post-reactions-wrap ${Object.keys(reacts).length ? 'is-shown' : ''}`}>
+          <div className="post-reactions">
+            {Object.entries(reacts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([emoji, n]) => (
+                <button
+                  key={emoji}
+                  className={`post-reaction ${myEmoji === emoji ? 'is-mine' : ''} ${burst && myEmoji === emoji ? 'is-bursting' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); onReact?.(emoji); }}
+                >
+                  <span className="post-reaction-emoji"><AppleEmoji emoji={emoji} /></span>
+                  <span>{formatNumber(n)}</span>
+                </button>
+              ))}
           </div>
-          <span>{formatNumber(likes)}</span>
-        </button>
-
-        <div className="post-actions-right">
-          <div className="post-action post-views">
-            <EyeIcon size={20} />
-            <span>{formatNumber(views)}</span>
-          </div>
-
-          {files.length > 0 && (
-            <button className="post-action post-download-btn" onClick={handleDownload} aria-label={t('post.download')}>
-              <DownloadIcon size={20} />
-              <span>{t('post.download')}</span>
-            </button>
-          )}
         </div>
+
+        {!hideMeta && <div className="post-meta">
+          {/* сначала дата, потом просмотры: иначе «10 пт в 23:00» читалось как дата */}
+          {author && <span className="post-meta-author">{author}</span>}
+          {time && <span className="post-meta-time">{time}</span>}
+          <span className="post-meta-views"><EyeIcon size={15} /><span>{formatNumber(views)}</span></span>
+        </div>}
       </div>
 
       <button className="post-comments-btn" onClick={handleComments}>
@@ -163,19 +169,19 @@ export default function PostFooter({
                     url={p.avatar_url}
                     name={p.display_name || p.username}
                     seed={p.id}
-                    size={20}
+                    size={26}
                   />
                 </div>
               ))}
             </div>
           ) : (
-            <CommentIcon size={20} />
+            <span className="post-comments-icon"><CommentIcon size={24} /></span>
           )}
           <span className="post-comments-text">{commentText}</span>
           {hasUnreadComments && <span className="unread-dot" />}
         </div>
         <div className="post-comments-right">
-          <ArrowRightIcon size={16} />
+          <ArrowRightIcon size={18} />
         </div>
       </button>
 

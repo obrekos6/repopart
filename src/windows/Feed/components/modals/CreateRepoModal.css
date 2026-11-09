@@ -7,7 +7,7 @@
   align-items: flex-end;
   justify-content: center;
   z-index: 100;
-  animation: modal-fade 0.25s ease;
+  animation: modal-fade 0.25s ease-out;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -94,7 +94,7 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
 }
 
 .sheet-btn:active:not(:disabled) { transform: scale(0.94); }
@@ -406,7 +406,7 @@
   padding: 0;
   font-family: var(--font-main);
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
 }
 
 .rt-tool:hover { background: var(--fill-secondary); }
@@ -449,7 +449,7 @@ b.rt-fmt-letter { font-weight: var(--font-black); }
 .modal-overlay.rt-overlay {
   animation: none;
   background: rgba(0, 0, 0, 0);
-  transition: background 0.3s ease;
+  transition: background 0.3s ease-out;
 }
 
 .modal-overlay.rt-overlay.is-shown { background: rgba(0, 0, 0, 0.2); }
@@ -546,5 +546,7 @@ b.rt-fmt-letter { font-weight: var(--font-black); }
 }
 
 /* появление меню — только прозрачность, чтобы не сбить положение над выделением */
-.sheet-menu.rt-ctx { animation: rt-ctx-in 0.15s ease; }
+.sheet-menu.rt-ctx { animation: rt-ctx-in 0.15s ease-out; }
 @keyframes rt-ctx-in { from { opacity: 0; } }
+
+.rt-spacer { flex: 1; }

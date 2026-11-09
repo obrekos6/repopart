@@ -12,7 +12,7 @@
   inset: 0;
   background: #000;
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 300ms ease-out;
 }
 
 .profile-screen-root.is-on .profile-screen-backdrop {
@@ -94,7 +94,7 @@
   height: 4px;
   border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.2);
-  transition: background 0.25s ease;
+  transition: background 0.25s ease-out;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -143,7 +143,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.25s ease;
+  transition: background 0.15s ease-out, color 0.25s ease-out;
 }
 
 .profile-screen-btn:hover {
@@ -370,7 +370,7 @@
   font-size: 0.9rem;
   font-weight: var(--font-bold);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease-out;
 }
 
 .profile-action:hover {
@@ -573,6 +573,19 @@
   .profile-screen-root.is-page .profile-screen-scroll { padding-bottom: 40px; }
 }
 
+/* компьютер: свой профиль (вкладка) выезжает слева, как Настройки */
+@media (min-width: 769px) {
+  .profile-screen-root.is-page:not(.is-pushed) {
+    left: 0;
+    right: auto;
+    width: var(--tab-page-w);
+    z-index: 310;
+    box-shadow: 1px 0 0 var(--separator);
+    transition: transform 0.4s cubic-bezier(.32, .72, 0, 1);
+  }
+  .profile-screen-root.is-page:not(.is-pushed).is-inactive { transform: translateX(-105%) !important; }
+}
+
 /* чужой профиль въезжает справа, как экран в Telegram */
 .profile-screen-root.is-page.is-pushed { z-index: 68; background: transparent; } /* поверх поиска */
 
@@ -592,22 +605,21 @@
   --t: 0;
   --p: 0;
   --s: 0px;
-  --A: 96px;                                        /* аватарка в обычном виде */
+  --pull: 0px;                                      /* шапка за пальцем до раскрытия */
+  --A: 100px;                                       /* аватарка в обычном виде */
   --W: var(--hero-full);                            /* ширина экрана профиля   */
-  --Ta: calc(var(--handle-h) + 52px);               /* верх аватарки           */
+  --Wh: calc(var(--W) * 1.12);                      /* высота раскрытого фото  */
+  --Ta: calc(var(--handle-h) + 44px);               /* верх аватарки           */
   --Tn: calc(var(--Ta) + var(--A) + 14px);          /* верх имени              */
   --Th: calc(var(--handle-h) + 17px);               /* имя в шапке (свёрнуто)  */
   --Hn: calc(var(--Tn) + 58px);                     /* высота шапки профиля    */
-  --nw: 120px;                                      /* ширина имени в шапке (JS) */
-  --Ac: 28px;                                       /* аватарка в свёрнутой шапке */
-  /* в свёрнутой шапке аватарка и имя стоят рядом, вместе по центру */
-  --Gl: calc((var(--W) - var(--Ac) - 8px - var(--nw)) / 2);
+  --Ac: 40px;                                       /* аватарка, уезжая вверх, уменьшается */
 }
 
 /* место под аватарку и имя в прокрутке */
 .profile-hero.pf-hero-space {
   overflow: visible;
-  height: calc(var(--Hn) + (var(--W) - var(--Hn)) * var(--t));
+  height: calc(var(--Hn) + var(--pull) + (var(--Wh) + 12px - var(--Hn)) * var(--t));
   transition: none;
 }
 
@@ -627,14 +639,11 @@
   --as: calc(var(--A) + (var(--Ac) - var(--A)) * var(--p));      /* размер при сворачивании */
   position: absolute;
   /* обычное → свёрнутое (рядом с именем в шапке) → фото на весь экран */
-  left: calc(
-    ((var(--W) - var(--A)) / 2 + (var(--Gl) - (var(--W) - var(--A)) / 2) * var(--p)) * (1 - var(--t))
-  );
-  top: calc(
-    ((var(--Ta) - var(--s)) + (var(--Th) - 3.5px - (var(--Ta) - var(--s))) * var(--p)) * (1 - var(--t))
-  );
+  left: calc((var(--W) - var(--as)) / 2 * (1 - var(--t)));
+  top: calc((var(--Ta) + var(--pull) - var(--s)) * (1 - var(--t)));
   width: calc(var(--as) + (var(--W) - var(--as)) * var(--t));
-  height: calc(var(--as) + (var(--W) - var(--as)) * var(--t));
+  height: calc(var(--as) + (var(--Wh) - var(--as)) * var(--t));
+  opacity: calc(1 - max(0, var(--p) - 0.5) * 2);
   border-radius: calc(var(--as) / 2 * (1 - var(--t)));
   overflow: hidden;
   padding: 0;
@@ -667,7 +676,7 @@
 .pf-avatar-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0) 45%),
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0) 22%),
               linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0, rgba(0, 0, 0, 0) 90px);
   opacity: var(--t);
 }
@@ -675,29 +684,29 @@
 /* --- имя: по центру под аватаркой → в шапке (при прокрутке) → слева внизу фото --- */
 .pf-name {
   position: absolute;
-  top: calc(((var(--Tn) - var(--s)) + (var(--Th) - (var(--Tn) - var(--s))) * var(--p)) * (1 - var(--t)) + (var(--W) - 80px) * var(--t));
+  top: calc(((var(--Tn) + var(--pull) - var(--s)) + (var(--Th) - (var(--Tn) - var(--s))) * var(--p)) * (1 - var(--t)) + (var(--Wh) - 62px) * var(--t));
   left: calc(50% * (1 - var(--t)) + 16px * var(--t));
-  /* в шапке имя сдвинуто вправо на половину «аватарка + отступ» */
-  transform: translateX(calc((-50% + 18px * var(--p)) * (1 - var(--t))));
+  transform: translateX(calc(-50% * (1 - var(--t))));
   max-width: calc(var(--W) - 32px - 80px * (1 - var(--t)));
   display: flex;
   align-items: center;
   gap: 6px;
   font-family: var(--font-main);
   font-weight: 700;
-  font-size: calc((22px - 5px * var(--p)) * (1 - var(--t)) + 26px * var(--t));
+  font-size: calc((22px - 5px * var(--p)) * (1 - var(--t)) + 20px * var(--t));
   line-height: 1.25;
   color: color-mix(in srgb, #fff calc(var(--t) * 100%), var(--sheet-text));
   white-space: nowrap;
 }
 
+.pf-avatar, .pf-name, .pf-sub { transform-origin: 0 0; }
 .pf-name-text { overflow: hidden; text-overflow: ellipsis; }
 .pf-verified { color: var(--accent); flex-shrink: 0; }
 
 /* --- подпись (число публикаций): под именем, в шапке исчезает --- */
 .pf-sub {
   position: absolute;
-  top: calc((var(--Tn) + 30px - var(--s)) * (1 - var(--t)) + (var(--W) - 46px) * var(--t));
+  top: calc((var(--Tn) + 30px + var(--pull) - var(--s)) * (1 - var(--t)) + (var(--Wh) - 34px) * var(--t));
   left: calc(50% * (1 - var(--t)) + 16px * var(--t));
   transform: translateX(calc(-50% * (1 - var(--t))));
   font-family: var(--font-main);
@@ -707,47 +716,29 @@
   opacity: calc(1 - var(--p) * 1.6);
 }
 
-/* плавность — только при смене режима (тап по аватарке или потягивание вниз) */
-.profile-screen-panel[data-anim] .pf-avatar,
-.profile-screen-panel[data-anim] .pf-name,
-.profile-screen-panel[data-anim] .pf-sub,
-.profile-screen-panel[data-anim] .pf-avatar-scrim,
-.profile-screen-panel[data-anim] .pf-hero-space {
-  transition: all 360ms var(--ease);
-}
-
-.profile-screen-panel[data-dragging] .pf-avatar,
-.profile-screen-panel[data-dragging] .pf-name,
-.profile-screen-panel[data-dragging] .pf-sub,
-.profile-screen-panel[data-dragging] .pf-hero-space { transition: none !important; }
-
 /* --- кнопки действий (как Message / Mute / Search у Telegram) --- */
 .pf-actions {
   display: flex;
-  justify-content: center;
-  gap: 8px;
   padding: 4px 16px 12px;
 }
 
 .pf-action {
-  flex: 0 1 25%;
-  min-width: 80px;
-  height: 58px;
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
   border: none;
-  border-radius: 14px;
+  border-radius: 999px;
   background: var(--bg-card);
   color: var(--accent);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
+  gap: 10px;
   font-family: var(--font-main);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: var(--font-bold);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease-out, background 0.15s ease-out;
 }
 
 .pf-action:active { transform: scale(0.96); }
@@ -824,11 +815,31 @@
   top: 0;
   left: 0;
   right: 0;
-  height: calc(56px + var(--handle-h));
-  background: var(--sheet-bg);
-  border-bottom: 1px solid var(--sheet-line);
+  height: calc(76px + var(--handle-h));
+  background: linear-gradient(to bottom, var(--sheet-bg) 35%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
   opacity: calc(var(--p) * (1 - var(--t)));
 }
 
-.profile-screen-root.is-page .pf-morph::before { background: var(--bg-primary); }
+.profile-screen-root.is-page .pf-morph::before { background: linear-gradient(to bottom, var(--bg-primary) 35%, transparent); }
 .profile-screen-root.is-page .profile-screen-panel { background: var(--bg-primary); }
+
+/* кнопки шапки — стеклянные, как в топбаре */
+.profile-screen-root.is-page .profile-screen-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  transition: color 380ms var(--ease);
+}
+.profile-screen-root.is-page .profile-screen-panel:not(.is-full) .profile-screen-btn { color: var(--sheet-text); }
+.profile-screen-root.is-page .profile-screen-edit {
+  width: auto;
+  margin-left: auto;
+  padding: 0 16px;
+  font-family: var(--font-main);
+  font-size: 17px;
+  font-weight: 600;
+}

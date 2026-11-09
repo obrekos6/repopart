@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../../../../lib/supabaseClient';
 import { useBackButton } from '../../../../lib/useBackButton';
 import { FILES_BUCKET } from '../../../../lib/storage';
-import { serializeEditor, toPlainText } from '../../../../lib/richText';
+import { serializeEditor, toPlainText, applyMarkdown } from '../../../../lib/richText';
 import { useT } from '../../../../lib/i18n';
-import { CloseIcon, ArrowUpIcon, MoreIcon, ArrowLeftIcon, PaperclipIcon, ImageIcon, VideoIcon, MusicIcon, FileIcon } from '../../../../assets/icons/Icons';
+import { CloseIcon, ArrowUpIcon, MoreIcon, PaperclipIcon, ImageIcon, VideoIcon, MusicIcon, FileIcon } from '../../../../assets/icons/Icons';
 import './CreateRepoModal.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -76,24 +75,6 @@ const compressImage = (file, maxW = 1600, quality = 0.75) => {
 
 const MAX_CHARS = 4096; // как у сообщения в Telegram
 
-/* ---------- форматирование (подменю «Форматирование», как в Telegram) ---------- */
-const FORMATS = [
-  { id: 'b', hint: 'Ctrl+B', cmd: 'bold' },
-  { id: 'i', hint: 'Ctrl+I', cmd: 'italic' },
-  { id: 'u', hint: 'Ctrl+U', cmd: 'underline' },
-  { id: 's', hint: 'Ctrl+Shift+X', cmd: 'strikeThrough' },
-  { id: 'blockquote', hint: 'Ctrl+Shift+.', wrap: 'blockquote' },
-  { id: 'code', hint: 'Ctrl+Shift+M', wrap: 'code' },
-];
-
-const wrapSelector = (kind) => kind;
-
-const unwrapElement = (el) => {
-  const parent = el.parentNode;
-  while (el.firstChild) parent.insertBefore(el.firstChild, el);
-  parent.removeChild(el);
-};
-
 /* Размер фото и сверхсжатая копия (~40px) для загрузки как в Telegram:
    в ленте она показывается под размытием, пока качается полное фото */
 const makeThumb = (file) => {
@@ -126,10 +107,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
-  // контекстное меню текста: { x, y, below, sub } — sub=true, когда открыто «Форматирование»
-  const [ctxMenu, setCtxMenu] = useState(null);
-  const [hasSelection, setHasSelection] = useState(false);
-  const [active, setActive] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef(null);
   const editorRef = useRef(null);
@@ -212,158 +189,14 @@ export default function CreateRepoModal({ onClose, onCreate }) {
     return () => clearTimeout(t);
   }, []);
 
-  /* ---------- состояние кнопок форматирования ---------- */
-  const selectionInEditor = () => {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount || !editorRef.current) return null;
-    const range = sel.getRangeAt(0);
-    return editorRef.current.contains(range.commonAncestorContainer) ? range : null;
-  };
-
-  const closestInEditor = (node, selector) => {
-    let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    while (el && el !== editorRef.current) {
-      if (el.matches(selector)) return el;
-      el = el.parentElement;
-    }
-    return null;
-  };
-
-  const refreshActive = useCallback(() => {
-    const range = selectionInEditor();
-    if (!range) return;
-    const next = {};
-    for (const f of FORMATS) {
-      if (f.cmd) {
-        try { next[f.id] = document.queryCommandState(f.cmd); } catch { next[f.id] = false; }
-      } else {
-        next[f.id] = !!closestInEditor(range.commonAncestorContainer, wrapSelector(f.wrap));
-      }
-    }
-    setActive(next);
-    setHasSelection(!range.collapsed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener('selectionchange', refreshActive);
-    return () => document.removeEventListener('selectionchange', refreshActive);
-  }, [refreshActive]);
-
-  const syncMarkup = () => setMarkup(serializeEditor(editorRef.current));
-
-  /* ---------- применение форматирования ---------- */
-  const toggleWrap = (kind) => {
-    const range = selectionInEditor();
-    if (!range) return;
-    const selector = wrapSelector(kind);
-    const sel = window.getSelection();
-
-    // курсор уже внутри такого форматирования — снимаем его
-    const existing = closestInEditor(range.commonAncestorContainer, selector);
-    if (existing) {
-      const r = document.createRange();
-      r.selectNode(existing);
-      sel.removeAllRanges();
-      sel.addRange(r);
-      document.execCommand('insertHTML', false, existing.innerHTML);
-      return;
-    }
-
-    if (range.collapsed) return; // форматировать можно только выделенный текст
-
-    const tmp = document.createElement('div');
-    tmp.appendChild(range.cloneContents());
-    tmp.querySelectorAll(selector).forEach(unwrapElement);
-    const inner = tmp.innerHTML;
-    // после моноширинного и скрытого ставим невидимый символ: курсор окажется
-    // за пределами форматирования, и дальше текст пойдёт обычным
-    // (при сохранении этот символ удаляется)
-    const after = kind === 'blockquote' ? '' : '\u200B';
-    const html = `<${kind}>${inner}</${kind}>${after}`;
-    // insertHTML попадает в историю — работают «Отменить» / «Повторить»
-    document.execCommand('insertHTML', false, html);
-  };
-
-  const applyFormat = (f) => {
-    editorRef.current?.focus();
-    if (f.cmd) {
-      document.execCommand('styleWithCSS', false, false);
-      document.execCommand(f.cmd, false, null);
-    } else {
-      toggleWrap(f.wrap);
-    }
-    syncMarkup();
-    refreshActive();
-  };
+  // форматирование пишется символами, как в Telegram, и применяется при публикации
+  const composeMarkup = () => applyMarkdown(serializeEditor(editorRef.current));
+  const syncMarkup = () => setMarkup(composeMarkup());
 
   const runHistory = (cmd) => {
     editorRef.current?.focus();
     document.execCommand(cmd, false, null);
     syncMarkup();
-  };
-
-  /* ---------- контекстное меню (правый клик / долгое нажатие) ---------- */
-  const openContextMenu = (e) => {
-    e.preventDefault();
-    const range = selectionInEditor();
-    let rect = range && !range.collapsed ? range.getBoundingClientRect() : null;
-    if (!rect || (!rect.width && !rect.height)) {
-      rect = { left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY };
-    }
-    refreshActive();
-    // меню над выделением; если сверху не помещается — под ним
-    const MENU_H = 330;
-    const below = rect.top < MENU_H + 16;
-    setCtxMenu({
-      x: Math.min(Math.max((rect.left + rect.right) / 2, 130), window.innerWidth - 130),
-      y: below ? rect.bottom + 8 : rect.top - 8,
-      below,
-      sub: false,
-    });
-  };
-
-  const closeMenu = () => setCtxMenu(null);
-
-  useEffect(() => {
-    if (!ctxMenu) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); } };
-    const onResize = () => closeMenu();
-    window.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [ctxMenu]);
-
-  const runEdit = async (action) => {
-    const ed = editorRef.current;
-    ed?.focus();
-    if (action === 'undo' || action === 'redo' || action === 'cut' || action === 'copy') {
-      document.execCommand(action);
-    } else if (action === 'delete') {
-      document.execCommand('delete');
-    } else if (action === 'selectAll') {
-      const r = document.createRange();
-      r.selectNodeContents(ed);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-      refreshActive();
-      // после «Выбрать всё» меню остаётся, чтобы сразу оформить текст
-      setCtxMenu((m) => (m ? { ...m, sub: false } : m));
-      return;
-    } else if (action === 'paste') {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (text) document.execCommand('insertText', false, text);
-      } catch {
-        alert(t('ed.pasteFail'));
-      }
-    }
-    syncMarkup();
-    closeMenu();
   };
 
   /* ---------- ввод ---------- */
@@ -383,13 +216,8 @@ export default function CreateRepoModal({ onClose, onCreate }) {
       e.currentTarget.closest('form')?.requestSubmit();
       return;
     }
-    if (!e.shiftKey) return;
-    const map = { KeyX: 's', KeyM: 'code', Period: 'blockquote' };
-    const id = map[e.code];
-    if (id) {
-      e.preventDefault();
-      applyFormat(FORMATS.find((f) => f.id === id));
-    }
+    // браузер не оформляет текст сам: форматирование только символами
+    if (['KeyB', 'KeyI', 'KeyU'].includes(e.code)) e.preventDefault();
   };
 
   /* ---------- файлы ---------- */
@@ -473,7 +301,7 @@ export default function CreateRepoModal({ onClose, onCreate }) {
     e.preventDefault();
     if (!canSend) return;
 
-    const text = serializeEditor(editorRef.current);
+    const text = composeMarkup();
 
     setUploading(true);
 
@@ -625,7 +453,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
             onInput={syncMarkup}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
-            onContextMenu={openContextMenu}
           />
         </div>
 
@@ -645,8 +472,7 @@ export default function CreateRepoModal({ onClose, onCreate }) {
             <PaperclipIcon size={22} />
           </button>
 
-          {/* форматирование — через правый клик / долгое нажатие по выделенному тексту */}
-          <span className="rt-hint"><span className="rt-hint-mouse">{t('ed.hint')}</span><span className="rt-hint-touch">{t('ed.hintTouch')}</span></span>
+          <span className="rt-spacer" />
 
           <button
             type="submit"
@@ -658,68 +484,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
             {uploading ? <span className="sheet-spinner" /> : <ArrowUpIcon size={22} />}
           </button>
         </div>
-
-        {ctxMenu && createPortal(
-          <>
-            <div
-              className="rt-ctx-backdrop"
-              onMouseDown={(e) => { e.preventDefault(); closeMenu(); }}
-              onContextMenu={(e) => { e.preventDefault(); closeMenu(); }}
-            />
-            <div
-              className={`sheet-menu rt-ctx ${ctxMenu.below ? 'is-below' : ''}`}
-              style={{ left: ctxMenu.x, top: ctxMenu.y }}
-              role="menu"
-              onMouseDown={keepSelection}
-            >
-              {!ctxMenu.sub ? (
-                <>
-                  <button type="button" className="sheet-menu-item" onClick={() => runEdit('undo')}>{t('ed.undo')}</button>
-                  <button type="button" className="sheet-menu-item" onClick={() => runEdit('redo')}>{t('ed.redo')}</button>
-                  <div className="sheet-menu-separator" />
-                  <button type="button" className="sheet-menu-item" disabled={!hasSelection} onClick={() => runEdit('cut')}>{t('ed.cut')}</button>
-                  <button type="button" className="sheet-menu-item" disabled={!hasSelection} onClick={() => runEdit('copy')}>{t('ed.copy')}</button>
-                  <button type="button" className="sheet-menu-item" onClick={() => runEdit('paste')}>{t('ed.paste')}</button>
-                  <button type="button" className="sheet-menu-item" disabled={!hasSelection} onClick={() => runEdit('delete')}>{t('ed.delete')}</button>
-                  <div className="sheet-menu-separator" />
-                  <button
-                    type="button"
-                    className="sheet-menu-item rt-ctx-more"
-                    disabled={!hasSelection}
-                    onClick={() => setCtxMenu((m) => ({ ...m, sub: true }))}
-                  >
-                    {t('ed.format')}<span className="rt-ctx-chevron" aria-hidden>›</span>
-                  </button>
-                  <div className="sheet-menu-separator" />
-                  <button type="button" className="sheet-menu-item" onClick={() => runEdit('selectAll')}>{t('ed.selectAll')}</button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="sheet-menu-item rt-ctx-back"
-                    onClick={() => setCtxMenu((m) => ({ ...m, sub: false }))}
-                  >
-                    <span className="sheet-menu-icon"><ArrowLeftIcon size={18} /></span>{t('ed.format')}
-                  </button>
-                  <div className="sheet-menu-separator" />
-                  {FORMATS.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      className={`sheet-menu-item rt-fmt-item ${active[f.id] ? 'is-active' : ''}`}
-                      onClick={() => { applyFormat(f); closeMenu(); }}
-                    >
-                      <span className={`rt-fmt-sample rt-fmt-${f.id}`}>{t(`fmt.${f.id}`)}</span>
-                      <span className="rt-ctx-hint">{f.hint}</span>
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
-          </>,
-          document.body
-        )}
 
         <input
           type="file"

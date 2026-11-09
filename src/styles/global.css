@@ -5,7 +5,7 @@ html, body, #root {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip, а не hidden: иначе в постах не работает sticky у аватара */
 }
 
 body {
@@ -39,6 +39,29 @@ button, input, textarea, select { font-family: inherit; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.15) transparent; }
 
+/* полоса прокрутки как на iPhone (lib/iosScrollbar.js): системные прячем */
+html.ios-scrollbar, html.ios-scrollbar * { scrollbar-width: none; }
+html.ios-scrollbar ::-webkit-scrollbar { display: none; }
+
+.ios-scroll-thumb {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(128, 128, 128, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease-out, width 0.15s ease-out;
+}
+.ios-scroll-thumb.is-on { opacity: 1; transition: opacity 0.1s ease-out, width 0.15s ease-out; }
+/* на компьютере за неё можно взяться мышью */
+@media (hover: hover) {
+  .ios-scroll-thumb.is-on { pointer-events: auto; }
+  .ios-scroll-thumb.is-on:hover, .ios-scroll-thumb.is-drag { width: 7px; }
+}
+
 .loading-screen {
   display: flex;
   align-items: center;
@@ -46,4 +69,43 @@ button, input, textarea, select { font-family: inherit; }
   min-height: 100vh;
   color: var(--text-secondary);
   font-family: var(--font-main);
+}
+/* Apple HIG: если в системе включено «Уменьшение движения» — без сдвигов и масштабов,
+   только мгновенные смены и короткие растворения */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* экран заблокированного аккаунта */
+.banned-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  text-align: center;
+}
+.banned-screen h1 { margin: 0; font-size: 24px; font-weight: 700; }
+.banned-screen p { margin: 0 0 12px; font-size: 17px; color: var(--text-secondary); }
+.banned-screen button {
+  min-height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--accent-red);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }

@@ -79,3 +79,73 @@
   /* неактивная вкладка уезжает за правый край, а не на ленту */
   .app-page.is-tab.is-inactive { transform: translateX(105%) !important; }
 }
+
+/* «Назад» у экранов вкладок: выезжает из-за левого края чуть позже самого экрана */
+.tab-back-btn {
+  transition: transform 0.45s cubic-bezier(.32, .72, 0, 1) 0.12s, opacity 0.3s ease-out 0.12s;
+}
+.is-inactive .tab-back-btn {
+  transform: translateX(-160%);
+  opacity: 0;
+  transition-delay: 0s;
+}
+/* на телефоне вкладки переключаются нижней панелью — кнопка не нужна */
+@media (max-width: 768px) {
+  .tab-back-btn { visibility: hidden; }
+}
+
+/* компьютер: экран вкладки выезжает слева, «Назад» — на месте поиска */
+@media (min-width: 769px) {
+  .app-page.is-tab {
+    left: 0;
+    right: auto;
+    width: var(--tab-page-w);
+    z-index: 310; /* над боковым меню */
+    box-shadow: 1px 0 0 var(--separator);
+  }
+  .app-page.is-tab.is-inactive { transform: translateX(-105%) !important; }
+  .app-page.is-tab .app-page-header { padding-left: 24px; padding-right: 24px; }
+}
+
+/* окно комментариев: поле ввода под списком, нижней панели здесь нет */
+.post-comments-page .app-page-body { padding-bottom: 12px; }
+
+/* шапка окна комментариев: шеврон, название в капсуле, аватар автора в круглой кнопке */
+.post-comments-page .app-page-btn { color: var(--text-primary); }
+.app-page-back-chevron { transform: scaleX(-1); }
+.app-page-title-capsule {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+.post-comments-author { padding: 0; overflow: hidden; }
+
+/* капсула заголовка — по ширине текста (у .sheet-btn размер круглой кнопки) */
+.app-page-header .app-page-title-capsule { padding: 0 18px; width: auto; min-width: 0; flex: 0 1 auto; color: var(--text-primary); font-weight: 600; }
+
+/* шапка окна комментариев парит над списком — стеклу есть что преломлять */
+.post-comments-page .app-page-header { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; }
+.post-comments-page .app-page-header > *, .post-comments-page .app-page-title-capsule { pointer-events: auto; }
+.post-comments-page .html-preview-title { pointer-events: none; }
+.post-comments-page .app-page-body { padding-top: calc(max(env(safe-area-inset-top), 14px) + 60px); }
+
+/* настройки: шапка парит над списком, название проявляется при прокрутке */
+.settings-page .app-page-header { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; }
+.settings-page .app-page-header > * { pointer-events: auto; }
+.settings-page .app-page-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -20px;
+  z-index: -1;
+  background: linear-gradient(to bottom, var(--bg-primary) 35%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  opacity: var(--p, 0);
+}
+.settings-page .html-preview-title { opacity: var(--p, 0); pointer-events: none; }
+.settings-page .app-page-body { padding-top: calc(max(env(safe-area-inset-top), 14px) + 30px); }

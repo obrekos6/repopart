@@ -1,0 +1,29 @@
+/* капсула «Реклама» — как BETA у логотипа */
+.ad-capsule {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ad-card.is-loading { min-height: 120px; }
+.ad-box { width: 100%; min-height: 1px; }
+
+/* образец при разработке */
+.ad-demo { display: flex; flex-direction: column; gap: 10px; }
+.ad-demo-title { font-family: var(--font-main); font-weight: 700; color: var(--text-primary); padding-right: 80px; min-height: 22px; }
+.ad-demo-img { width: calc(100% + 18px); margin-left: -9px; aspect-ratio: 16 / 9; border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 45%, #000), #2a2a2e); }
+.ad-demo-text { font-family: var(--font-main); color: var(--text-primary); line-height: 1.3; }
+

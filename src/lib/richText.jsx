@@ -111,6 +111,30 @@ export function RichText({ text, renderText }) {
   return <>{renderNodes(parseRich(text || ''), renderText)}</>;
 }
 
+/* ---------- символы, как в Telegram: **жирный** __курсив__ ~~зачёркнутый~~ ||скрытый|| `код` ```блок``` > цитата
+   На вход — уже экранированный текст из serializeEditor */
+function inlineMarks(s) {
+  return s
+    .replace(/\*\*(?=\S)(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/__(?=\S)(.+?)__/g, '<i>$1</i>')
+    .replace(/~~(?=\S)(.+?)~~/g, '<s>$1</s>')
+    .replace(/\|\|(?=\S)(.+?)\|\|/g, '<spoiler>$1</spoiler>');
+}
+
+export function applyMarkdown(text = '') {
+  const joined = text
+    .split(/(```[\s\S]+?```|`[^`\n]+`)/)
+    .map((part, i) => (i % 2 ? `<code>${part.replace(/^`+\n?|\n?`+$/g, '')}</code>` : inlineMarks(part)))
+    .join('');
+  // подряд идущие строки с «> » — одна цитата
+  return joined.replace(/(?:^|\n)((?:&gt; ?[^\n]*(?:\n|$))+)/g, (m, block) => {
+    const lead = m.startsWith('\n') ? '\n' : '';
+    const tail = block.endsWith('\n') ? '\n' : '';
+    const inner = block.replace(/\n$/, '').split('\n').map((l) => l.replace(/^&gt; ?/, '')).join('\n');
+    return `${lead}<blockquote>${inner}</blockquote>${tail}`;
+  });
+}
+
 /* ---------- сохранение: DOM редактора → текст с тегами ---------- */
 const escapeText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

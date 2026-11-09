@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
 }
 
 .audio-play:hover { opacity: 0.9; }
@@ -57,7 +57,7 @@
   background: var(--text-secondary);
   border-radius: 2px;
   opacity: 0.35;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease-out, opacity 0.15s ease-out;
   pointer-events: none;
 }
 

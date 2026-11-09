@@ -57,7 +57,7 @@
   background-size: 5px 5px, 7px 7px;
   background-position: 0 0, 2px 3px;
   animation: rt-spoiler-dust 1.6s linear infinite;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease-out;
 }
 
 .rt-spoiler * { color: transparent; -webkit-text-fill-color: transparent; }

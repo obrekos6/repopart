@@ -28,7 +28,7 @@
   font-weight: var(--font-heavy);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: filter 0.15s ease;
+  transition: filter 0.15s ease-out;
 }
 
 .landing-more:hover {

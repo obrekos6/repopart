@@ -6,8 +6,9 @@ import { getProfile } from '../../../../lib/profilesCache';
 import { FILES_BUCKET } from '../../../../lib/storage';
 import { RichText, toPlainText } from '../../../../lib/richText';
 import { translateText } from '../../../../lib/translate';
+import { withAppleEmoji } from '../../../../lib/appleEmoji';
 import { useSetting } from '../../../../lib/settings';
-import { HeartFilledIcon } from '../../../../assets/icons/Icons';
+import { HeartFilledIcon, EyeIcon } from '../../../../assets/icons/Icons';
 
 // выше этой высоты текст поста сворачивается (≈ 12 строк по 22px)
 const COLLAPSED_HEIGHT = 264;
@@ -17,13 +18,16 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // query — строка или список найденных слов (умный поиск подсвечивает слова с опечатками)
 function highlightText(text, query) {
   const terms = (Array.isArray(query) ? query : [query]).filter(Boolean).sort((a, b) => b.length - a.length);
-  if (!terms.length || !text) return text;
+  if (!terms.length || !text) return withAppleEmoji(text);
   const re = new RegExp(`(${terms.map(escapeRe).join('|')})`, 'gi');
   return text.split(re).map((part, i) =>
-    i % 2 === 1 ? <mark key={i} className="search-hl">{part}</mark> : part
+    i % 2 === 1 ? <mark key={i} className="search-hl">{withAppleEmoji(part)}</mark> : <React.Fragment key={i}>{withAppleEmoji(part)}</React.Fragment>
   );
 }
 import PostHeader from './PostHeader';
+import Avatar from './Avatar';
+import { formatPostTime } from '../../../../lib/formatTime';
+import { isAdmin } from '../../../../lib/admin';
 import PostMedia from './PostMedia';
 import PostFooter from './PostFooter';
 import PostContextMenu from './PostContextMenu';
@@ -39,11 +43,14 @@ export default function PostCard({
   onRequireAuth,
   onOpenProfile,
   highlight = '',
+  onOpenParts,
 }) {
   const t = useT();
   const [views, setViews] = useState(post.views || 0);
-  const [likes, setLikes] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+  // реакции эмодзи: { '❤️': 3, '🔥': 1 } и своя реакция (одна на человека)
+  const [reacts, setReacts] = useState({});
+  const [myEmoji, setMyEmoji] = useState(null);
+  const isLiked = !!myEmoji;
   const [burst, setBurst] = useState(false);
   const [preview, setPreview] = useState(null); 
   const [htmlPreview, setHtmlPreview] = useState(null); 
@@ -69,6 +76,7 @@ export default function PostCard({
   const hasTrackedView = useRef(false);
 
   const isAuthor = !!(currentUser && post.user_id === currentUser.id);
+  const canDelete = isAuthor || isAdmin(currentUser);
 
   // вложения поста; меняются, если удалить фото/видео из галереи
   const [files, setFiles] = useState(post.files || []);
@@ -79,6 +87,8 @@ export default function PostCard({
   // «Читать далее» для длинных постов
   const textRef = useRef(null);
   const [expanded, setExpanded] = useState(false);
+  // при раскрытии высота плавно растёт до полной, потом ограничение снимается
+  const [openH, setOpenH] = useState(null);
   const [overflowing, setOverflowing] = useState(false);
 
   useEffect(() => {
@@ -152,28 +162,28 @@ export default function PostCard({
     return () => { cancelled = true; };
   }, [post.user_id]);
 
+  // все реакции поста одним запросом: считаем по эмодзи и находим свою
+  const loadReactions = async () => {
+    const { data } = await supabase
+      .from('reactions')
+      .select('emoji, user_id')
+      .eq('repository_id', post.id);
+    if (pendingLikeRef.current || !mountedRef.current || !data) return;
+    const map = {};
+    let mine = null;
+    data.forEach((r) => {
+      const e = r.emoji || '❤️';
+      map[e] = (map[e] || 0) + 1;
+      if (currentUser && r.user_id === currentUser.id) mine = e;
+    });
+    setReacts(map);
+    setMyEmoji(mine);
+  };
+
   useEffect(() => {
     if (readOnly) return;
-    const load = async () => {
-      if (pendingLikeRef.current) return;
-      const { count } = await supabase
-        .from('reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('repository_id', post.id);
-      if (pendingLikeRef.current || !mountedRef.current) return;
-      setLikes(count || 0);
-
-      if (currentUser) {
-        const { data } = await supabase
-          .from('reactions')
-          .select('id')
-          .eq('repository_id', post.id)
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
-        if (!pendingLikeRef.current && mountedRef.current) setIsLiked(!!data);
-      }
-    };
-    load();
+    loadReactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, currentUser, readOnly]);
 
   useEffect(() => {
@@ -185,11 +195,7 @@ export default function PostCard({
         async () => {
           if (pendingLikeRef.current || !mountedRef.current) return;
           if (Date.now() - lastLocalRef.current < 2000) return;
-          const { count } = await supabase
-            .from('reactions')
-            .select('*', { count: 'exact', head: true })
-            .eq('repository_id', post.id);
-          if (mountedRef.current) setLikes(count || 0);
+          loadReactions();
         })
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'repositories', filter: `id=eq.${post.id}` },
@@ -198,40 +204,58 @@ export default function PostCard({
     return () => supabase.removeChannel(ch);
   }, [post.id, currentUser, uid, readOnly]);
 
-  const handleLike = async () => {
+  // поставить / сменить / снять реакцию (повторный выбор той же — снимает)
+  const react = async (emoji = '❤️') => {
     if (readOnly) { requireAuth(); return; }
     if (!currentUser || pendingLikeRef.current) return;
     pendingLikeRef.current = true;
     lastLocalRef.current = Date.now();
 
-    const wasLiked = isLiked;
-    const prevLikes = likes;
-    setIsLiked(!wasLiked);
-    setLikes(wasLiked ? prevLikes - 1 : prevLikes + 1);
-
-    if (!wasLiked) {
-      setBurst(true);
-      setTimeout(() => setBurst(false), 600);
-    }
+    const prev = myEmoji;
+    const prevMap = reacts;
+    const next = prev === emoji ? null : emoji;
+    const map = { ...reacts };
+    if (prev) { map[prev] = (map[prev] || 1) - 1; if (map[prev] <= 0) delete map[prev]; }
+    if (next) map[next] = (map[next] || 0) + 1;
+    setReacts(map);
+    setMyEmoji(next);
+    if (next) { setBurst(true); setTimeout(() => setBurst(false), 600); }
 
     try {
       // supabase-js не бросает исключения, ошибку нужно проверять вручную
-      const { error } = wasLiked
-        ? await supabase.from('reactions').delete()
-            .eq('repository_id', post.id).eq('user_id', currentUser.id)
-        : await supabase.from('reactions').insert({
-            repository_id: post.id,
-            user_id: currentUser.id,
-            emoji: '❤️',
-          });
+      const q = supabase.from('reactions');
+      const { error } = !next
+        ? await q.delete().eq('repository_id', post.id).eq('user_id', currentUser.id)
+        : prev
+          ? await q.update({ emoji: next }).eq('repository_id', post.id).eq('user_id', currentUser.id)
+          : await q.insert({ repository_id: post.id, user_id: currentUser.id, emoji: next });
       if (error) throw error;
     } catch {
-      if (mountedRef.current) {
-        setIsLiked(wasLiked);
-        setLikes(prevLikes);
-      }
+      if (mountedRef.current) { setReacts(prevMap); setMyEmoji(prev); }
     } finally {
       setTimeout(() => { pendingLikeRef.current = false; }, 500);
+    }
+  };
+  const handleLike = () => react('❤️');
+
+  // скачать первый файл поста (пункт меню)
+  const handleDownload = async () => {
+    const f = files[0];
+    if (!f) return;
+    const filename = f.name || 'download';
+    try {
+      const res = await fetch(f.url);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+    } catch {
+      window.open(f.url, '_blank');
     }
   };
 
@@ -276,8 +300,54 @@ export default function PostCard({
     // выделяли текст мышью — это не тап
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed && cardRef.current?.contains(sel.anchorNode)) return;
+    if (pressRef.current.fired) { pressRef.current.fired = false; return; } // меню уже открыто зажатием
     handleTap(e, () => setMenuOpen(true));
   };
+
+  // зажатие: пост чуть уменьшается; через 450 мс открывается меню
+  const [pressed, setPressed] = useState(false);
+  const pressRef = useRef({ timer: null, x: 0, y: 0, fired: false });
+  const onPressStart = (e) => {
+    if (readOnly || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (e.target.closest('button, a, input, textarea, .post-media')) return;
+    const p = pressRef.current;
+    p.x = e.clientX; p.y = e.clientY; p.fired = false;
+    setPressed(true);
+    clearTimeout(p.timer);
+    p.timer = setTimeout(() => {
+      p.fired = true;
+      clearTimeout(tapRef.current.timer);
+      tapRef.current.timer = null;
+      setMenuOpen(true);
+      setPressed(false);
+    }, 450);
+  };
+  const onPressMove = (e) => {
+    const p = pressRef.current;
+    if (p.timer && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8) { clearTimeout(p.timer); p.timer = null; setPressed(false); }
+  };
+  const onPressEnd = () => {
+    clearTimeout(pressRef.current.timer);
+    pressRef.current.timer = null;
+    setPressed(false);
+  };
+  useEffect(() => () => clearTimeout(pressRef.current.timer), []);
+  // отпускание где угодно (палец ушёл с поста, прокрутка) всегда возвращает размер
+  useEffect(() => {
+    if (!pressed) return undefined;
+    const up = () => onPressEnd();
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    window.addEventListener('scroll', up, true);
+    window.addEventListener('blur', up);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('scroll', up, true);
+      window.removeEventListener('blur', up);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pressed]);
 
   const handleContextMenu = (e) => {
     if (readOnly) {
@@ -408,6 +478,15 @@ export default function PostCard({
   const fallbackName = post.author_email ? post.author_email.split('@')[0] : 'user';
   const displayName = author?.display_name || author?.username || fallbackName;
 
+  // время и просмотры встают в последнюю строку текста, если нет реакций и текст не свёрнут
+  const postTime = formatPostTime(post.created_at);
+  const hasVisual = files.some((f) => f?.type?.startsWith('image/') || f?.type?.startsWith('video/'));
+  const mediaMeta = hasVisual && !hasCaption;
+  const hasReacts = Object.keys(reacts).length > 0;
+  // при переводе время встаёт в строку «Показать оригинал»
+  const inlineMeta = hasCaption && !hasReacts && !(overflowing && !expanded);
+  const metaW = Math.round((String(views).length + postTime.length + (hasVisual ? Math.min(displayName.length, 20) : 0)) * 6 + 34);
+
   const renderTextWithLinks = (text) => {
     if (!text) return null;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -460,9 +539,30 @@ export default function PostCard({
 
   return (
     <>
+      {/* пост — как сообщение в канале: аватар снаружи слева внизу, пузырь с хвостиком */}
+      <div
+        className={`post-row ${menuOpen ? 'is-menu-open' : ''} ${pressed ? 'is-pressed' : ''}`}
+        onPointerDown={onPressStart}
+        onPointerUp={onPressEnd}
+        onPointerCancel={onPressEnd}
+        onPointerLeave={onPressEnd}
+        onPointerMove={onPressMove}
+      >
+      <button
+        type="button"
+        className="post-row-avatar"
+        onClick={(e) => { e.stopPropagation(); onOpenProfile?.(post.user_id); }}
+        aria-label={displayName}
+      >
+        <Avatar url={author?.avatar_url} name={displayName} seed={post.user_id} size={36} />
+      </button>
+      <div className="post-bubble">
+      <svg className="post-tail" width="14" height="17" viewBox="0 15 13.1 16.93" aria-hidden>
+        <path d="M5.88281 15C6.13544 17.8617 6.62476 20.0067 7.5752 21.8721C8.87019 24.4135 10.7445 26.5983 13.0303 28.2598C10.1528 30.56 6.53854 31.9305 2.61328 31.9307C1.72491 31.9307 0.851596 31.8598 0 31.7246C3.19773 30.0392 5.42132 26.7525 5.60059 22.9307V15H5.88281Z" />
+      </svg>
       <div
         ref={cardRef}
-        className={`post-card ${readOnly ? 'is-preview' : ''}`}
+        className={`post-card ${readOnly ? 'is-preview' : ''} ${hasVisual ? 'no-header' : ''} ${mediaMeta ? 'media-only' : ''}`}
         onClick={handleCardClick}
         onContextMenu={handleContextMenu}
       >
@@ -471,25 +571,42 @@ export default function PostCard({
             <HeartFilledIcon size={84} />
           </span>
         )}
-        <PostHeader
-          author={author}
-          userId={post.user_id}
-          displayName={displayName}
-          createdAt={post.created_at}
-          authorEmail={post.author_email}
-          onOpenProfile={onOpenProfile}
-        />
+        {/* у постов с фото/видео имени нет — как у медиа в каналах */}
+        {!hasVisual && (
+          <PostHeader
+            author={author}
+            userId={post.user_id}
+            displayName={displayName}
+            createdAt={post.created_at}
+            onOpenProfile={onOpenProfile}
+            bubble
+          />
+        )}
 
         {files.length > 0 && (
+          <div className="post-media-wrap">
           <PostMedia
             files={files}
             postName={plainCaption}
             onPreview={readOnly
               ? requireAuth
               // по фото: один тап — галерея, двойной — лайк
-              : (file, index, all, e) => (e ? handleTap(e, () => setPreview({ files: all, index })) : setPreview({ files: all, index }))}
+              // в ленте — просмотр как Parts, в остальных местах — обычная галерея
+              : (file, index, all, e) => {
+                  const open = onOpenParts ? () => onOpenParts(post, index) : () => setPreview({ files: all, index });
+                  return e ? handleTap(e, open) : open();
+                }}
             onOpenHtml={readOnly ? requireAuth : (file) => setHtmlPreview(file)}
           />
+          {/* нет текста — время и просмотры капсулой поверх фото/видео */}
+          {mediaMeta && (
+            <span className="post-media-meta">
+              <span className="post-meta-author">{displayName}</span>
+              <span className="post-meta-time">{postTime}</span>
+              <span className="post-meta-views"><EyeIcon size={13} /><span>{views}</span></span>
+            </span>
+          )}
+          </div>
         )}
 
         {hasCaption && (
@@ -497,11 +614,14 @@ export default function PostCard({
             <div
               ref={textRef}
               className={`post-text ${overflowing && !expanded ? 'is-collapsed' : ''}`}
-              style={overflowing && !expanded ? { maxHeight: COLLAPSED_HEIGHT } : undefined}
+              style={overflowing && !expanded ? { maxHeight: COLLAPSED_HEIGHT } : openH ? { maxHeight: openH } : undefined}
+              onTransitionEnd={(e) => { if (e.propertyName === 'max-height') setOpenH(null); }}
             >
               {translation && translation !== 'loading'
                 ? renderTextWithLinks(translation.text)
                 : <RichText text={post.name} renderText={renderTextWithLinks} />}
+              {/* место под время в последней строке: если строка длинная — время уйдёт ниже */}
+              {inlineMeta && !translation && <span className="post-meta-spacer" style={{ width: metaW }} aria-hidden />}
             </div>
             {translation && (
               <button
@@ -518,7 +638,7 @@ export default function PostCard({
                 type="button"
                 className="post-read-more"
                 data-no-redirect
-                onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+                onClick={(e) => { e.stopPropagation(); setOpenH(textRef.current ? textRef.current.scrollHeight : null); setExpanded(true); }}
               >
                 {t('post.readMore')}
               </button>
@@ -528,27 +648,38 @@ export default function PostCard({
 
         <PostFooter
           views={views}
-          likes={likes}
-          isLiked={isLiked}
+          time={postTime}
+          inlineMeta={inlineMeta}
+          hideMeta={mediaMeta}
+          author={hasVisual ? displayName : ''}
+          reacts={reacts}
+          myEmoji={myEmoji}
           burst={burst}
-          onLike={handleLike}
+          onReact={react}
           files={files}
           postId={post.id}
           onOpenComments={handleOpenComments}
           hasUnreadComments={hasUnreadComments}
         />
       </div>
+      </div>
+      </div>
 
       {!readOnly && (
         <PostContextMenu
           open={menuOpen}
+          anchorRef={cardRef}
+          myEmoji={myEmoji}
+          onReact={react}
+          onComments={handleOpenComments}
+          onDownload={files.length ? handleDownload : undefined}
           onClose={() => setMenuOpen(false)}
           onShare={handleShare}
           onCopy={handleCopy}
           onTranslate={showTranslate && hasCaption ? handleTranslate : undefined}
           translated={!!translation && translation !== 'loading'}
           onDelete={handleDelete}
-          isAuthor={isAuthor}
+          isAuthor={canDelete}
           hasCaption={hasCaption}
         />
       )}

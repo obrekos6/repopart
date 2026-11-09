@@ -169,7 +169,7 @@
   -webkit-backdrop-filter: none;
   box-shadow: none;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease-out;
 }
 
 .fixed-logo:active { opacity: 0.6; }
@@ -268,16 +268,49 @@
   z-index: 0;
   transform-origin: center;
   transition:
-    left 0.35s cubic-bezier(.4, 0, .2, 1),
-    width 0.35s cubic-bezier(.4, 0, .2, 1),
-    transform 0.25s cubic-bezier(.4, 0, .2, 1);
+    left 0.35s cubic-bezier(.32, .72, 0, 1),
+    width 0.35s cubic-bezier(.32, .72, 0, 1),
+    transform 0.25s cubic-bezier(.32, .72, 0, 1);
 }
+
+/* капсула в полёте или под пальцем чуть приподнимается (как в iOS) */
+.tabs-capsule { transition-property: left, width, transform; }
+.tabs-capsule.is-lifted { transform: scale(1.1); }
+
+/* лупа: окно ровно по капсуле, внутри — «выбранные» вкладки, увеличенные */
+.tabs-lens {
+  position: absolute;
+  top: var(--tabs-pad);
+  height: calc(var(--tabs-h) - var(--tabs-pad) * 2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(var(--tab-active-bg), var(--tab-active-bg)), var(--bg-card); /* непрозрачно: закрывает вкладки под лупой */
+  transition: left 0.35s cubic-bezier(.32, .72, 0, 1), width 0.35s cubic-bezier(.32, .72, 0, 1), transform 0.25s cubic-bezier(.32, .72, 0, 1);
+}
+.tabs-lens.is-lifted { transform: scale(1.1); }
+.tabs-lens-inner {
+  position: absolute;
+  top: calc(var(--tabs-pad) * -1);
+  height: var(--tabs-h);
+  display: flex;
+  align-items: center;
+  padding: var(--tabs-pad);
+  box-sizing: border-box;
+  transition: left 0.35s cubic-bezier(.32, .72, 0, 1), transform 0.25s cubic-bezier(.32, .72, 0, 1), transform-origin 0.35s cubic-bezier(.32, .72, 0, 1);
+}
+.tabs-lens.is-lifted .tabs-lens-inner { transform: scale(1.06); }
+.tabs-lens.is-dragging, .tabs-lens.is-dragging .tabs-lens-inner { transition-duration: 0s, 0s, 0.15s, 0s; }
+/* в покое лупа не видна — выбранная вкладка и так синяя */
+.tabs-lens:not(.is-lifted) { opacity: 0; }
+.tabs-lens { transition-property: left, width, transform, opacity; }
 
 .tabs-capsule.is-dragging {
   transition:
     left 0s,
     width 0s,
-    transform 0.15s cubic-bezier(.4, 0, .2, 1);
+    transform 0.15s cubic-bezier(.32, .72, 0, 1);
 }
 
 .tab {
@@ -318,7 +351,7 @@
   align-items: center;
   padding: calc(var(--topbar-top) + var(--topbar-h) + 4px) 16px 40px;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip, а не hidden: иначе не работает sticky у аватара */
 }
 
 .interests-section {
@@ -481,7 +514,7 @@
 .topbar .fixed-logo,
 .topbar .double-btn,
 .topbar .topbar-filters {
-  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(.32, .72, 0, 1);
+  transition: opacity 0.25s ease-out, transform 0.4s cubic-bezier(.32, .72, 0, 1);
 }
 
 .topbar.is-searching .fixed-logo,
@@ -560,7 +593,7 @@
   visibility: hidden;
   pointer-events: none;
   z-index: 1;
-  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+  transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
 }
 
 .topbar-search-input::placeholder { color: var(--label-tertiary); }
@@ -570,7 +603,7 @@
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transition: opacity 0.2s ease 0.15s, visibility 0s;
+  transition: opacity 0.2s ease-out 0.15s, visibility 0s;
 }
 
 .topbar-search-close {
@@ -590,12 +623,12 @@
   padding: 0;
   cursor: pointer;
   z-index: 3;
-  animation: topbar-search-in 0.3s ease 0.15s both;
+  animation: topbar-search-in 0.3s ease-out 0.15s both;
 }
 
 @keyframes topbar-search-in { from { opacity: 0; transform: scale(0.6); } }
 
-.search-results.is-loading { opacity: 0.6; transition: opacity 0.15s ease; }
+.search-results.is-loading { opacity: 0.6; transition: opacity 0.15s ease-out; }
 
 /* лента — первая «страница» галереи: уезжает влево, когда выбрана другая вкладка */
 .app .topbar,
@@ -638,7 +671,7 @@
   font-weight: var(--font-bold);
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.2s ease;
+  transition: background 0.15s ease-out, color 0.2s ease-out;
 }
 
 .desktop-sidebar .side-menu-item:hover { background: var(--fill-secondary); }
@@ -663,4 +696,69 @@
     padding-left: 16px;
     padding-right: calc(50% + 16px);
   }
+}
+
+/* Компьютер и планшет: Профиль и Настройки выезжают слева,
+   лента с топбаром уезжает вправо, боковое меню плавно гаснет */
+@media (min-width: 769px) {
+  :root { --tab-page-w: min(max(50vw, 560px), calc(100vw - 380px)); }
+
+  .app .desktop-sidebar { transition: opacity 0.3s ease-out; }
+  .app.has-tab-page .desktop-sidebar { opacity: 0; pointer-events: none; }
+
+  .app .topbar { transition: left 0.4s cubic-bezier(.32, .72, 0, 1), right 0.4s cubic-bezier(.32, .72, 0, 1), height 0.4s cubic-bezier(.32, .72, 0, 1); }
+  .app.has-tab-page .topbar { right: 0; left: var(--tab-page-w); }
+  .app.has-tab-page .main-content {
+    padding-left: calc(var(--tab-page-w) + 16px);
+    padding-right: 16px;
+  }
+}
+
+/* Телефон, как в iOS: уходящий экран уменьшается и гаснет (фон остаётся),
+   новый сразу в полный размер и проявляется. Переход задаёт конечное состояние:
+   уход — scale 0.25s, появление — scale мгновенно. */
+@media (max-width: 768px) {
+  .app .topbar, .app .main-content {
+    transform: none;
+    scale: 1;
+    opacity: 1;
+    transition: opacity 0.2s ease-out, scale 0s, height 0.4s cubic-bezier(.32, .72, 0, 1), padding-top 0.4s cubic-bezier(.32, .72, 0, 1);
+  }
+  .app .main-content { transform-origin: 50% var(--feed-oy, 50vh); }
+  .app.has-tab-page .topbar, .app.has-tab-page .main-content {
+    opacity: 0;
+    scale: 0.94;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out, scale 0.25s ease-out;
+  }
+  .app-page.is-tab, .profile-screen-root.is-page:not(.is-pushed) {
+    transform: none !important;
+    scale: 1;
+    opacity: 1;
+    transition: opacity 0.2s ease-out, scale 0s, visibility 0s;
+  }
+  .app-page.is-tab.is-inactive, .profile-screen-root.is-page:not(.is-pushed).is-inactive {
+    opacity: 0;
+    scale: 0.94;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out, scale 0.25s ease-out, visibility 0s linear 0.25s;
+  }
+}
+
+/* ===== узкие экраны (маленькие телефоны, часы, сплит-экран) ===== */
+@media (max-width: 380px) {
+  :root { --side-pad: 10px; }
+  .logo-beta-capsule { display: none; }
+}
+
+@media (max-width: 300px) {
+  /* остаётся только значок логотипа — надпись не влезает между кнопками */
+  .logo-text { display: none; }
+  .topbar .tabs .tab { padding-left: 6px; padding-right: 6px; font-size: 13px; min-width: 0; }
+}
+
+/* часы и совсем крошечные окна (до ~150px) — всё мельче */
+@media (max-width: 220px) {
+  :root { --btn-h: 34px; --topbar-row-h: 42px; --tabs-h: 34px; --side-pad: 6px; }
+  .topbar .tabs .tab { font-size: 11px; padding-left: 4px; padding-right: 4px; }
 }

@@ -203,7 +203,7 @@ button.comment-author:disabled {
   justify-content: center;
   flex-shrink: 0;
   opacity: 0.35;
-  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: opacity 0.15s ease-out, background 0.15s ease-out, color 0.15s ease-out;
 }
 
 @media (prefers-color-scheme: dark) {

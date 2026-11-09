@@ -3,10 +3,10 @@ import { useT } from '../../../lib/i18n';
 import { supabase } from '../../../lib/supabaseClient';
 import { getProfile } from '../../../lib/profilesCache';
 import { formatTime } from '../../../lib/formatTime';
+import { withAppleEmoji } from '../../../lib/appleEmoji';
+import { isAdmin } from '../../../lib/admin';
 import Avatar from '../../Feed/components/post/Avatar';
 import { TrashIcon, VerifiedIcon } from '../../../assets/icons/Icons';
-
-const VERIFIED_EMAILS = ['obrekos6@gmail.com'];
 
 export default function CommentItem({ comment, currentUser, onDelete, onOpenProfile }) {
   const t = useT();
@@ -15,7 +15,8 @@ export default function CommentItem({ comment, currentUser, onDelete, onOpenProf
 
   const isAuthor = !!(currentUser && comment.user_id === currentUser.id);
   const isTemp = String(comment.id).startsWith('temp-');
-  const isVerified = !!(comment.author_email && VERIFIED_EMAILS.includes(comment.author_email));
+  const isVerified = !!author?.is_verified;
+  const canDelete = isAuthor || isAdmin(currentUser);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -75,9 +76,9 @@ export default function CommentItem({ comment, currentUser, onDelete, onOpenProf
           {isVerified && <VerifiedIcon size={14} className="comment-verified" />}
           <span className="comment-time">{formatTime(comment.created_at)}</span>
         </div>
-        <div className="comment-text">{comment.content}</div>
+        <div className="comment-text">{withAppleEmoji(comment.content)}</div>
       </div>
-      {isAuthor && !isTemp && (
+      {canDelete && !isTemp && (
         <button className="comment-delete" onClick={handleDelete} aria-label={t('comments.delete')}>
           <TrashIcon size={16} />
         </button>

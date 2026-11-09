@@ -31,7 +31,7 @@
   padding: 4px 0;
   cursor: pointer;
   font-family: var(--font-main);
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease-out;
 }
 
 .post-action:hover {
@@ -84,7 +84,7 @@
   letter-spacing: var(--text-subheadline-ls);
   font-weight: var(--font-bold);
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease-out;
 }
 
 .post-comments-btn:hover {
@@ -144,3 +144,173 @@
 .post-commenter-avatar:nth-child(2) {
   z-index: 2;
 }
+/* ===================================================================
+   Подвал поста как у постов каналов в iOS:
+   реакции — капсулы, просмотры — мелко серым справа,
+   комментарии — синей строкой с аватарками и шевроном.
+   =================================================================== */
+.post-footer { padding-top: 10px; }
+
+.post-stats-row {
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+
+.post-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.post-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fill-secondary, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out, transform 0.15s ease-out;
+}
+.post-reaction:active { transform: scale(0.94); }
+.post-reaction svg { width: 18px; height: 18px; }
+
+/* своя реакция — капсула залита акцентом */
+.post-reaction.like-btn .like-icon { color: var(--accent-red); }
+.post-reaction.like-btn.is-liked {
+  background: var(--accent);
+  color: #fff;
+}
+.post-reaction.like-btn.is-liked .like-icon { color: #fff; }
+
+.post-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 12px;
+}
+.post-meta svg { width: 15px; height: 15px; }
+
+/* строка комментариев: синий текст и шеврон, разделитель на всю ширину карточки */
+.post-comments-btn {
+  width: calc(100% + 24px);
+  margin: 0 -12px -12px;
+  padding: 8px 14px 10px 12px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.post-comments-btn:hover { opacity: 1; }
+.post-comments-btn:active { background: var(--fill-secondary, rgba(255, 255, 255, 0.06)); }
+.post-comments-left { gap: 10px; }
+.post-comments-left svg { color: var(--accent); }
+.post-comments-text { color: var(--accent); }
+.post-comments-right { color: var(--accent); }
+.post-commenter-avatar { margin-left: -10px; }
+.post-commenter-avatar:first-child { margin-left: 0; }
+
+/* реакция эмодзи; своя — залита акцентом */
+.post-reaction-emoji { font-size: 17px; line-height: 1; }
+.post-reaction.is-mine { background: var(--accent); color: #fff; }
+.post-reaction.is-bursting .post-reaction-emoji { animation: post-react-pop 0.5s cubic-bezier(.32, .72, 0, 1); }
+@keyframes post-react-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.post-meta-time { margin-left: 4px; }
+.post-stats-row { min-height: 18px; }
+
+/* ---- строка реакций и времени ---- */
+.post-stats-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 0 10px;
+  transition: margin-top 0.3s cubic-bezier(.32, .72, 0, 1);
+}
+/* нет реакций: время поднимается в последнюю строку текста (под него оставлено место) */
+.post-stats-row.is-inline { margin-top: -24px; }
+
+.post-reactions-wrap {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s cubic-bezier(.32, .72, 0, 1), opacity 0.25s ease-out;
+}
+.post-reactions-wrap.is-shown { grid-template-rows: 1fr; opacity: 1; }
+.post-reactions-wrap > .post-reactions { min-height: 0; overflow: hidden; padding-top: 2px; }
+
+/* по HIG область нажатия не меньше 44 pt: капсула 32, невидимые поля вокруг */
+.post-reaction { position: relative; }
+.post-reaction::after { content: ''; position: absolute; inset: -6px -3px; }
+
+/* ---- плотнее и Semibold, как в Telegram ---- */
+.post-meta { font-size: 11px; font-weight: 600; gap: 2px; padding-bottom: 1px; }
+.post-meta svg { width: 13px; height: 13px; }
+.post-meta-time { margin-left: 3px; }
+.post-stats-row { padding-bottom: 6px; }
+.post-stats-row.is-inline { margin-top: -21px; }
+.post-footer { padding-top: 4px; }
+.post-reaction { font-weight: 600; }
+.post-comments-btn { padding-top: 7px; padding-bottom: 8px; font-weight: 600; }
+/* иконка комментариев — потолще, как Bold */
+.post-comments-left svg { stroke-width: 2.3; }
+
+/* ---- реакции по макету Figma: 68×31, эмодзи 24 на (9.5; 3.5), число 13 на (36.5; 9) ---- */
+.post-reaction {
+  height: 31px;
+  min-width: 68px;
+  padding: 0 9.5px;
+  gap: 3px;
+  background: rgba(97, 97, 97, 0.1);
+  font-size: 13px;
+  line-height: 13px;
+}
+.post-reaction-emoji { width: 24px; height: 24px; font-size: 20px; line-height: 24px; text-align: center; }
+.post-reaction > span:last-child { min-width: 22px; text-align: left; }
+.post-reaction.is-mine { background: var(--accent); color: #fff; }
+
+/* информация — Regular */
+.post-meta { font-weight: 400; }
+
+/* иконка без аватарок — того же размера, что и аватарки */
+.post-comments-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+.post-commenters-avatars { min-height: 30px; }
+
+/* пустая строка (медиа без текста и без реакций) не занимает места */
+.post-stats-row.is-empty { padding: 0; }
+
+/* чуть больше воздуха */
+.post-footer { padding-top: 6px; }
+.post-stats-row { padding-bottom: 8px; }
+.post-comments-btn { padding-top: 8px; padding-bottom: 9px; }
+
+/* ширина капсулы — по содержимому: 1 цифра → 52, 2 → 59, 3 → 66, «72K» → 68 */
+.post-reaction { min-width: 0; padding: 0 8px 0 9.5px; }
+.post-reaction > span:last-child { min-width: 0; }
+
+/* реакция: сверху и снизу 3.5, по бокам 9.5, между эмодзи и числом 3 */
+.post-reaction { height: auto; padding: 3.5px 9.5px; gap: 3px; box-sizing: border-box; }
+
+/* информация: имя (если нет шапки), дата, просмотры — через 3 */
+.post-meta, .post-media-meta { gap: 3px; }
+.post-meta .post-meta-time, .post-media-meta .post-meta-time { margin-left: 0; }
+.post-meta-views { display: inline-flex; align-items: center; gap: 2px; }
+.post-meta-author { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* глаз просмотров — залитый, зрачок вырезан цветом фона */
+.post-meta-views svg path { fill: currentColor; }
+.post-meta-views svg circle { fill: var(--bg-post); stroke: none; }
+.post-media-meta .post-meta-views svg circle { fill: #333; }
