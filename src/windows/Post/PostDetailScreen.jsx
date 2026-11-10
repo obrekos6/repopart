@@ -73,7 +73,6 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
       id: tempId,
       repository_id: post.id,
       user_id: currentUser.id,
-      author_email: currentUser.email,
       content: text.trim(),
       created_at: new Date().toISOString(),
     };
@@ -84,7 +83,6 @@ export default function PostDetailScreen({ post, currentUser, onClose, onOpenPro
       .insert({
         repository_id: post.id,
         user_id: currentUser.id,
-        author_email: currentUser.email,
         content: text.trim(),
       })
       .select()

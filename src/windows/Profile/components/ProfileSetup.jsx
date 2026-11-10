@@ -117,7 +117,6 @@ export default function ProfileSetup({ onComplete, submitLabel = 'Продолж
         username: u,
         display_name: d,
         avatar_url: avatarUrl,
-        email: user.email,
         updated_at: new Date().toISOString(),
       });
 

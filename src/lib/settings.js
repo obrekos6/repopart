@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 
-export const APP_VERSION = '1.4.1 beta';
+export const APP_VERSION = '1.4.4 beta';
 
 const KEY = 'svyaz-settings';
 

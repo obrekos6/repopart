@@ -34,18 +34,15 @@ export default function AuthScreen() {
 
     if (!raw.includes('@')) {
       /* lookup email by username */
-      const { data } = await supabase
-        .from('profiles')
-        .select('email')
-        .ilike('username', raw)
-        .maybeSingle();
+      /* почту отдаёт база, только если пароль верный (supabase/security.sql) */
+      const { data, error: rpcErr } = await supabase.rpc('login_email', { p_username: raw, p_password: password });
 
-      if (!data?.email) {
-        setError('Юзернейм не найден');
+      if (rpcErr || !data) {
+        setError(rpcErr?.message?.includes('попыток') ? rpcErr.message : 'Неверный юзернейм или пароль');
         setLoading(false);
         return;
       }
-      email = data.email;
+      email = data;
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });

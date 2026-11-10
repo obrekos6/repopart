@@ -316,7 +316,6 @@ export default function CreateRepoModal({ onClose, onCreate }) {
           description: '',
           files: uploaded,
           user_id: user.id,
-          author_email: user.email,
           views: 0,
         })
         .select()
