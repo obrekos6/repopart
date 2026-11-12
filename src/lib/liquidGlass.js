@@ -1,15 +1,13 @@
 /*
- * Liquid Glass — настоящее преломление фона, как в iOS 26 / Telegram.
+ * Liquid Glass — стекло как у Telegram (подобрано покадрово по видео Telegram Android).
  *
- * Как это работает (по статье kube.io «Liquid Glass in the Browser» и
- * проекту rizzytoday/liquid-glass):
- *  1. Для каждого элемента на canvas рисуется карта смещений: край стекла —
- *     выпуклый «сквиркл» (y = (1 - (1 - x)^4)^(1/4)), свет преломляется по
- *     закону Снелла (воздух n=1 → стекло n=1.5). Красный канал = сдвиг по X,
- *     зелёный = сдвиг по Y.
- *  2. SVG-фильтр с feDisplacementMap сдвигает пиксели фона по этой карте.
- *     Три прохода с разной силой для R, G и B дают цветной разлом
- *     (хроматическую аберрацию) по краям.
+ * Как это работает:
+ *  1. Для каждого элемента на canvas рисуется карта смещений. Кромка шириной
+ *     ~0.4 радиуса работает как зеркало: у самого края стекло показывает фон
+ *     с противоположной стороны (верх отражает низ и наоборот), к середине
+ *     отражение плавно гаснет. Красный канал = сдвиг по X, зелёный = по Y.
+ *  2. SVG-фильтр сдвигает пиксели фона по этой карте (feDisplacementMap),
+ *     потом слегка размывает — той же силой, что обычное стекло в glass.css.
  *  3. Фильтр подключается через `backdrop-filter: url(#id)`.
  *
  * Работает только в браузерах на Chromium (Chrome, Edge, Яндекс, Android).
@@ -33,8 +31,11 @@ const SELECTOR = [
   '.sheet-menu',
 ].join(',');
 
-const IOR = 1.5;              // показатель преломления стекла
-const SAMPLES = 128;          // точность профиля (8-битная карта больше не различит)
+const GLASS_BLUR = 2.5;       // размытие; то же число, что --glass-blur-px в glass.css
+const MIRROR_BAND = 0.4;      // ширина отражающей кромки, доля от радиуса
+const MIRROR_FALL = 2;        // как быстро отражение гаснет к середине
+                              // (подобрано покадрово по видео Telegram Android)
+const MAP_DPR = 2;            // карту смещений считаем в 2× — край без лесенки
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -44,26 +45,6 @@ export function isLiquidGlassSupported() {
   // backdrop-filter: url() есть только в Chromium; Chrome на iPhone (CriOS) — это WebKit
   return /Chrome\/\d+/.test(ua) && !/CriOS|FxiOS/.test(ua) && CSS.supports('backdrop-filter', 'blur(1px)');
 }
-
-/* ---------- профиль преломления по закону Снелла ---------- */
-const surface = (t) => Math.pow(1 - Math.pow(1 - t, 4), 1 / 4); // выпуклый сквиркл
-
-const PROFILE = (() => {
-  const out = new Float32Array(SAMPLES);
-  const d = 0.001;
-  let max = 0;
-  for (let i = 0; i < SAMPLES; i++) {
-    const t = Math.min(1 - d, Math.max(d, i / (SAMPLES - 1)));
-    const slope = (surface(t + d) - surface(t - d)) / (2 * d);
-    const theta1 = Math.atan(slope);                       // угол падения к нормали
-    const theta2 = Math.asin(Math.sin(theta1) / IOR);      // угол после преломления
-    const v = Math.tan(theta1 - theta2) * surface(t);      // сдвиг ∝ толщине стекла
-    out[i] = v;
-    if (v > max) max = v;
-  }
-  for (let i = 0; i < SAMPLES; i++) out[i] /= max || 1;
-  return out;
-})();
 
 /* расстояние до края скруглённого прямоугольника и направление наружу */
 function roundedRectField(px, py, w, h, r) {
@@ -83,32 +64,35 @@ function roundedRectField(px, py, w, h, r) {
   return { inside: -dist, nx, ny };
 }
 
-function buildMaps(w, h, radius, bezel) {
-  const W = Math.max(1, Math.round(w));
-  const H = Math.max(1, Math.round(h));
+// Кромка-зеркало, как у Telegram: у края стекло показывает фон с противоположной
+// стороны (верх отражает низ и наоборот), к середине отражение плавно гаснет.
+// Сдвиг нормирован на scale = 2 * radius.
+function buildMaps(w, h, radius) {
+  const band = radius * MIRROR_BAND;
+  const k = MAP_DPR;
+  const W = Math.max(1, Math.round(w * k));
+  const H = Math.max(1, Math.round(h * k));
   const disp = document.createElement('canvas');
   disp.width = W;
   disp.height = H;
   const dctx = disp.getContext('2d');
   const D = dctx.createImageData(W, H);
-
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
-      const f = roundedRectField(x + 0.5, y + 0.5, W, H, radius);
+      const f = roundedRectField((x + 0.5) / k, (y + 0.5) / k, w, h, radius);
       let dx = 0;
       let dy = 0;
-      if (f.inside > 0.5 && f.inside < bezel) {
-        const t = f.inside / bezel;
-        const mag = PROFILE[Math.min(SAMPLES - 1, Math.floor(t * (SAMPLES - 1)))];
-        dx = -f.nx * mag; // свет «тянется» к центру линзы
-        dy = -f.ny * mag;
+      if (f.inside > 0 && f.inside < band) {
+        const fall = Math.pow(1 - f.inside / band, MIRROR_FALL);
+        const d = (2 * radius - 2 * f.inside) * fall / (2 * radius);
+        dx = -f.nx * d;
+        dy = -f.ny * d;
       }
-      D.data[i] = 128 + dx * 127;
-      D.data[i + 1] = 128 + dy * 127;
+      D.data[i] = 128 + dx * 255;
+      D.data[i + 1] = 128 + dy * 255;
       D.data[i + 2] = 128;
       D.data[i + 3] = 255;
-
     }
   }
   dctx.putImageData(D, 0, 0);
@@ -134,13 +118,6 @@ const el = (tag, attrs) => {
   return node;
 };
 
-// оставляет в картинке один цветовой канал
-const CHANNEL = {
-  r: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0',
-  g: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0',
-  b: '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0',
-};
-
 function buildFilter(id, w, h, maps, scale) {
   const filter = el('filter', {
     id,
@@ -151,19 +128,15 @@ function buildFilter(id, w, h, maps, scale) {
   });
   const box = { x: 0, y: 0, width: w, height: h, preserveAspectRatio: 'none' };
 
-  filter.appendChild(el('feGaussianBlur', { in: 'SourceGraphic', stdDeviation: 1.2, result: 'frost' }));
   filter.appendChild(el('feImage', { ...box, href: maps.disp, result: 'map' }));
-
-  // цветной разлом: R, G и B преломляются чуть по-разному
-  [['r', scale], ['g', scale * 1.08], ['b', scale * 1.16]].forEach(([c, s]) => {
-    filter.appendChild(el('feDisplacementMap', {
-      in: 'frost', in2: 'map', scale: s.toFixed(2),
-      xChannelSelector: 'R', yChannelSelector: 'G', result: `d${c}`,
-    }));
-    filter.appendChild(el('feColorMatrix', { in: `d${c}`, type: 'matrix', values: CHANNEL[c], result: c }));
-  });
-  filter.appendChild(el('feBlend', { in: 'r', in2: 'g', mode: 'screen', result: 'rg' }));
-  filter.appendChild(el('feBlend', { in: 'rg', in2: 'b', mode: 'screen' }));
+  // сначала преломляем резкий фон, потом слегка размываем
+  filter.appendChild(el('feDisplacementMap', {
+    in: 'SourceGraphic', in2: 'map', scale: scale.toFixed(2),
+    xChannelSelector: 'R', yChannelSelector: 'G', result: 'bent',
+  }));
+  filter.appendChild(el('feGaussianBlur', {
+    in: 'bent', stdDeviation: GLASS_BLUR, edgeMode: 'duplicate',
+  }));
   // блики — не в фильтре, а тонкой кромкой через box-shadow (styles/glass.css)
   return filter;
 }
@@ -190,19 +163,17 @@ function update(node) {
   state.h = h;
 
   const radius = radiusOf(node, w, h);
-  const bezel = Math.max(6, Math.min(Math.min(w, h) / 2, radius || 16, 26) * 0.8);
-  // плюс: край берёт фон чуть глубже изнутри — как выпуклая линза.
-  // Брать фон снаружи нельзя: браузер отдаёт фильтру фон только в пределах элемента
-  const scale = Math.min(40, bezel * 1.5);
+  const r = Math.max(6, radius || 16);
+  const scale = 2 * r;
 
-  const maps = buildMaps(w, h, radius, bezel);
+  const maps = buildMaps(w, h, r);
   const filter = buildFilter(state.id, w, h, maps, scale);
   if (state.filter) state.filter.replaceWith(filter);
   else ensureSvg().appendChild(filter);
   state.filter = filter;
 
-  node.style.backdropFilter = `url(#${state.id}) saturate(1.5)`;
-  node.style.webkitBackdropFilter = `url(#${state.id}) saturate(1.5)`;
+  node.style.backdropFilter = `url(#${state.id}) saturate(1.6)`;
+  node.style.webkitBackdropFilter = `url(#${state.id}) saturate(1.6)`;
   node.classList.add('lg-on');
 }
 

@@ -212,38 +212,6 @@
   background: var(--separator);
 }
 
-/* ===== Настоящее жидкое стекло (lib/liquidGlass.js, только Chromium) =====
-   backdrop-filter изолирует слои элемента, поэтому слои смешивания из Figma
-   (color-burn / darken) смешиваются только с заливкой кнопки и дают сплошной
-   серый — он закрывал бы преломление. Для жидкого стекла их отключаем
-   и оставляем лёгкую тонировку; преломление и блик делает SVG-фильтр. */
-.liquid-glass .lg-on {
-  background: rgba(255, 255, 255, 0.5);
-  /* блики: светлая кромка, свет падает под углом 60° (cos 60° = 0.5, sin 60° ≈ 0.87) */
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.12),
-    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.8),
-    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.3);
-}
-.liquid-glass .lg-on::before,
-.liquid-glass .lg-on::after { display: none; }
-
-/* в меню текст должен читаться — тонировка плотнее */
-.liquid-glass .post-ctx-sheet.lg-on,
-.liquid-glass .sheet-menu.lg-on { background: rgba(245, 245, 245, 0.62); }
-
-@media (prefers-color-scheme: dark) {
-  .liquid-glass .lg-on {
-    background: rgba(28, 28, 30, 0.42);
-    box-shadow:
-      0 8px 40px rgba(0, 0, 0, 0.4),
-      inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.14),
-      inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.05);
-  }
-  .liquid-glass .post-ctx-sheet.lg-on,
-  .liquid-glass .sheet-menu.lg-on { background: rgba(28, 28, 30, 0.6); }
-}
-
 /* ===== Блик на круглых и капсульных кнопках =====
    Непрозрачным — только блик. Свет падает под тем же углом, что у стекла */
 .sheet-btn.is-accent,
@@ -264,21 +232,61 @@
     inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* жидкое стекло выключено или браузер его не умеет: остаются блик, размытие и прозрачность */
-html:not(.liquid-glass) :is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar, .html-preview-url-bar, .html-preview-toolbar) {
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.12),
-    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.8),
-    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.3);
+/* ===== Единое стекло (как у Telegram на Android) =====
+   Одинаково со включённым жидким стеклом и без него: те же размытие,
+   тёмная заливка и светлая кромка. Жидкое стекло добавляет только
+   преломление по краю (lib/liquidGlass.js), размытие тогда делает его фильтр
+   с той же силой (GLASS_BLUR там = --glass-blur-px здесь). */
+:root {
+  --glass-blur-px: 2.5px;
+  --glass-tint: rgba(255, 255, 255, 0.6);
+  --glass-tint-menu: rgba(245, 245, 245, 0.72);
+  --glass-rim:
+    0 8px 32px rgba(0, 0, 0, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5),
+    inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.9),
+    inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not(.liquid-glass) :is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar, .html-preview-url-bar, .html-preview-toolbar) {
-    box-shadow:
-      0 8px 40px rgba(0, 0, 0, 0.4),
-      inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.14),
-      inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.05);
+  :root {
+    --glass-tint: rgba(30, 30, 32, 0.58);
+    --glass-tint-menu: rgba(30, 30, 32, 0.74);
+    --glass-rim:
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 0 5px rgba(0, 0, 0, 0.35),
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.07),
+      inset 0.5px 0.87px 0 rgba(255, 255, 255, 0.16),
+      inset -0.5px -0.87px 0 rgba(255, 255, 255, 0.06);
   }
+}
+
+:is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .parts-back, .rt-toolbar,
+    .html-preview-url-bar, .html-preview-toolbar, .html-preview-btn,
+    .app-page-btn, .app-page-title-capsule) {
+  background: var(--glass-tint);
+  box-shadow: var(--glass-rim);
+}
+
+:is(.post-ctx-sheet, .side-menu, .sheet-menu) {
+  background: var(--glass-tint-menu);
+  box-shadow: var(--glass-rim);
+}
+
+/* слои смешивания из Figma дают разный цвет в разных браузерах — убираем везде */
+:is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar,
+    .html-preview-url-bar, .html-preview-toolbar,
+    .post-ctx-sheet, .side-menu, .sheet-menu)::before,
+:is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .rt-toolbar,
+    .html-preview-url-bar, .html-preview-toolbar,
+    .post-ctx-sheet, .side-menu, .sheet-menu)::after {
+  display: none;
+}
+
+/* без жидкого стекла (выключено, Safari, Firefox): размытие той же силы */
+html:not(.liquid-glass) :is(.menu-btn, .double-btn, .tabs, .sheet-btn:not(.is-accent), .parts-back,
+    .rt-toolbar, .html-preview-url-bar, .html-preview-toolbar, .html-preview-btn,
+    .app-page-btn, .app-page-title-capsule, .post-ctx-sheet, .side-menu, .sheet-menu) {
+  backdrop-filter: blur(var(--glass-blur-px, 2.5px)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--glass-blur-px, 2.5px)) saturate(1.6);
 }
