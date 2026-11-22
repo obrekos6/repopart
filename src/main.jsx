@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
+// на время работ вместо приложения — заглушка (вернуть: App вместо Maintenance)
+import Maintenance from './Maintenance.jsx';
 import './styles/theme.css';
 import './styles/global.css';
 import './styles/glass.css';
@@ -9,7 +10,7 @@ import { initLiquidGlass } from './lib/liquidGlass';
 import { initIosScrollbar } from './lib/iosScrollbar';
 import { getSetting, applySettings } from './lib/settings';
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<Maintenance />);
 
 // настройки с этого устройства (размер текста и т. п.)
 applySettings();

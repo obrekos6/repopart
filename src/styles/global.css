@@ -109,3 +109,4 @@ html.ios-scrollbar ::-webkit-scrollbar { display: none; }
   font-weight: 600;
   cursor: pointer;
 }
+.maintenance-logo { width: 28px; height: 28px; }
